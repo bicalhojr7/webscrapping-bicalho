@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bicalho Ads Lab</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/styles.css" />
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  </head>
+  <body>
+    <!-- Login Overlay -->
+    <div id="login-overlay" style="position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+      <form id="login-form" style="background: var(--surface); padding: 32px; border-radius: 12px; width: 100%; max-width: 360px; box-shadow: 0 4px 24px rgba(0,0,0,0.1); border: 1px solid var(--border);">
+        <h2 style="margin-top: 0; margin-bottom: 24px; text-align: center;">Bicalho Ads Lab</h2>
+        <label class="field" style="margin-bottom: 16px;">
+          <span>E-mail</span>
+          <input type="email" id="login-email" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-strong); background: var(--bg); color: var(--fg);">
+        </label>
+        <label class="field" style="margin-bottom: 24px;">
+          <span>Senha</span>
+          <input type="password" id="login-password" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-strong); background: var(--bg); color: var(--fg);">
+        </label>
+        <p id="login-feedback" class="feedback" style="margin-bottom: 16px; color: #f43f5e;"></p>
+        <button type="submit" class="button button--primary" style="width: 100%;">Entrar</button>
+      </form>
+    </div>
+
+    <div class="shell" id="app-shell" style="display: none;">
+      <aside class="rail">
+        <div>
+          <p class="rail__eyebrow">Prospecção</p>
+          <h1 class="rail__title">Bicalho Ads Lab</h1>
+          <p class="rail__copy">
+            Busque empresas com a API do Google, revise a fila e exporte apenas os leads aprovados.
+          </p>
+        </div>
+
+        <nav class="rail__nav">
+          <button id="nav-leads" class="nav__link active">🏢 Fila de Leads</button>
+          <button id="nav-sales" class="nav__link">💬 Estratégia & Copy</button>
+        </nav>
+
+        <form id="search-form" class="search-panel">
+          <label class="field">
+            <span>Busca</span>
+            <textarea
+              id="query"
+              name="query"
+              rows="3"
+              placeholder="Ex.: oficinas automotivas em santa catarina"
+              required
+            ></textarea>
+          </label>
+
+          <label class="field">
+            <span>Limite</span>
+            <input id="maxResults" name="maxResults" type="number" min="1" max="100" value="100" />
+          </label>
+
+          <div class="actions">
+            <button class="button button--primary" type="submit">Buscar</button>
+            <a class="button button--ghost" href="/api/leads/export.xlsx">Exportar .xlsx</a>
+            <button class="button button--reject" type="button" id="btn-clear" style="margin-left:auto;">Limpar</button>
+          </div>
+        </form>
+
+        <p id="feedback" class="feedback" role="status"></p>
+      </aside>
+
+      <main class="board">
+        <div id="view-leads">
+        <section class="metrics" aria-label="Resumo">
+          <article class="metric">
+            <span class="metric__label">Total</span>
+            <strong id="metric-total" class="metric__value">0</strong>
+          </article>
+          <article class="metric">
+            <span class="metric__label">Pendentes</span>
+            <strong id="metric-pending" class="metric__value">0</strong>
+          </article>
+          <article class="metric">
+            <span class="metric__label">Aprovados</span>
+            <strong id="metric-approved" class="metric__value">0</strong>
+          </article>
+          <article class="metric">
+            <span class="metric__label">Rejeitados</span>
+            <strong id="metric-rejected" class="metric__value">0</strong>
+          </article>
+        </section>
+
+        <section class="tickets">
+          <div class="tickets__header">
+            <div>
+              <p class="tickets__eyebrow">Leads</p>
+              <h2 class="tickets__title">Fila de revisão</h2>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center;">
+          <input type="text" id="local-search" placeholder="Buscar nome/telefone…" style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--fg); font-size: 13px; width: 200px;" />
+              <label style="display:flex; align-items:center; gap:4px; font-size: 12px; color: var(--fg-secondary); cursor: pointer; white-space:nowrap;">
+                <input type="checkbox" id="filter-no-site" style="accent-color: var(--accent);" /> Sem site
+              </label>
+              <button id="btn-auto-generate" class="button button--primary" type="button" style="white-space:nowrap; font-size:13px;">⚡ Modo Automático</button>
+            </div>
+          </div>
+
+          <div id="lead-list" class="ticket-list" aria-live="polite"></div>
+        </section>
+        </div>
+
+        <div id="view-sales" style="display: none;">
+          <h2 class="tickets__title" style="margin-bottom: 8px;">Estratégia de Vendas B2B</h2>
+          <p style="color: var(--fg-secondary); font-size: 14px; margin-bottom: 24px;">Abordagem estruturada ("Value-First") para prospectar as empresas via WhatsApp. A conversão depende de 80% do pre-frame do link e 20% da explicação em áudio.</p>
+
+          <div class="copy-grid">
+            <article class="copy-card">
+              <h3>Passo 1: Quebra de Padrão (Texto + Link)</h3>
+              <p class="copy-desc">Mande essa mensagem em texto ANTES de se apresentar. O foco é fazer ele abrir o site pelo impacto visual e acionar o gatilho da curiosidade.</p>
+              
+              <div class="copy-text" id="copy-text-1">Fala [Nome da Pessoa/Empresa], tudo bem?
+
+VOCÊ GANHOU UMA PRÉVIA DO SEU SITE GRÁTIS 🎁
+
+Eu tava dando uma olhada aqui nas empresas de [Cidade/Nicho] e vi que o trabalho de vocês é muito bom, mas o posicionamento atual na internet não reflete o valor do serviço.
+
+Como a gente trabalha com design de alta conversão, tomei a liberdade de construir o visual de como ficaria um site Premium de vocês focado em trazer contatos pro WhatsApp.
+
+Dá uma olhada em como ficou:
+[Link do Vercel]</div>
+              
+              <button class="button button--primary" onclick="copyText('copy-text-1')" style="width: 100%;">Copiar Passo 1</button>
+            </article>
+
+            <article class="copy-card">
+              <h3>Passo 2: Explicação (Áudio de 40s a 1 min)</h3>
+              <p class="copy-desc">Mande o áudio 3 minutos DEPOIS dele visualizar a mensagem ou clicar no link. Tom descontraído, posicionado como autoridade.</p>
+              
+              <div class="copy-text" id="copy-text-2">"Oi [Nome], desculpa a brincadeira ali no começo! 
+
+Deixa eu me apresentar: eu tenho uma assessoria aqui de marketing voltada pra gerar resultados de verdade e escalar tráfego. Como a gente tem uma ferramenta de radar para achar negócios que não tem site (ou que tem o site fora do padrão pro tráfego pago atual), eu acabei selecionando vocês.
+
+Se você clicar no link que mandei, vai ver que é uma página Premium. Totalmente diferente desse padrão antigo do mercado. Esse modelo já tá com a nossa engenharia de foco pro botão do WhatsApp, porque página boa é página que enche a agenda.
+
+Vê se faz sentido pro momento de vocês dar essa evoluída. Se fizer, a gente bate um papo rápido aqui pelo WhatsApp pra eu te explicar como funciona pra de fato subir esse projeto no ar."</div>
+              
+              <button class="button button--ghost" onclick="copyText('copy-text-2')" style="width: 100%;">Copiar Passo 2</button>
+            </article>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <template id="lead-card-template">
+      <article class="ticket">
+        <div class="ticket__stripe"></div>
+        <div class="ticket__body">
+          <div class="ticket__topline">
+            <span class="ticket__status"></span>
+            <span class="ticket__date"></span>
+          </div>
+          <h3 class="ticket__title"></h3>
+          <p class="ticket__phone"></p>
+          <p class="ticket__meta"></p>
+          <div class="ticket__site_links"></div>
+          <div class="ticket__actions">
+            <button class="button button--primary" data-generate="true" type="button">Gerar Site</button>
+            <button class="button button--ghost" data-manual="true" type="button">Subir HTML</button>
+            <span class="whatsapp-link-container"></span>
+            <span class="evo-send-container"></span>
+            <span class="maps-link-container"></span>
+            <button class="button button--approve" data-status="approved" type="button">Aprovar</button>
+            <button class="button button--pending" data-status="pending" type="button">Pendente</button>
+            <button class="button button--reject" data-status="rejected" type="button">Rejeitar</button>
+          </div>
+        </div>
+      </article>
+    </template>
+
+    <!-- Dialog: Gerar Site via Stitch -->
+    <dialog id="generate-dialog">
+      <h3>Criar Site — <span id="generate-lead-name"></span></h3>
+      <p>Suba o print do Instagram desta empresa para a IA do Stitch copiar a identidade e gerar a Landing Page.</p>
+      
+      <form id="generate-form">
+        <input type="hidden" id="generate-lead-id">
+        <label class="field" style="margin-top: 12px;">
+          <span>Imagem de Referência (Máx 3)</span>
+          <input type="file" id="generate-image" accept="image/*" multiple style="padding: 8px;">
+        </label>
+        <p style="font-size: 12px; color: var(--fg-tertiary); margin-top: -4px;">Pode dar <strong>Ctrl+V</strong> para colar o print direto.</p>
+        <div id="generate-preview" style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; min-height:40px; border-radius:6px; border:1px dashed var(--border-strong); padding:6px;"></div>
+        
+        <p id="generate-feedback" class="feedback"></p>
+
+        <div class="actions" style="margin-top: 16px; justify-content: flex-end;">
+          <button type="button" class="button button--ghost" onclick="document.getElementById('generate-dialog').close()">Cancelar</button>
+          <button type="submit" class="button button--primary" id="generate-submit">Gerar Agora</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Dialog: Editar Site -->
+    <dialog id="edit-dialog">
+      <h3>Ajustar Site — <span id="edit-lead-name"></span></h3>
+      <p>Peça para a IA do Stitch alterar qualquer parte do site (ex: "Troque a cor de fundo para preto"). Economiza tokens.</p>
+      
+      <form id="edit-form">
+        <input type="hidden" id="edit-lead-id">
+        <label class="field" style="margin-top: 12px;">
+          <span>Instrução de Edição</span>
+          <textarea id="edit-prompt" rows="3" placeholder="Ex: Deixe as fontes mais elegantes e reduza o banner." style="width:100%; resize:vertical;" required></textarea>
+        </label>
+        
+        <p id="edit-feedback" class="feedback" style="margin-top: 8px;"></p>
+
+        <div class="actions" style="margin-top: 16px; justify-content: flex-end;">
+          <button type="button" class="button button--ghost" onclick="document.getElementById('edit-dialog').close()">Cancelar</button>
+          <button type="submit" class="button button--primary" id="edit-submit">Aplicar Mudança</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Dialog: Subir HTML Manual -->
+    <dialog id="manual-dialog" style="max-width: 600px;">
+      <h3>Subir HTML Manual — <span id="manual-lead-name"></span></h3>
+      <p>Cole o código final exportado do Stitch para deploy direto via Github/Vercel.</p>
+      
+      <form id="manual-form">
+        <input type="hidden" id="manual-lead-id">
+        <label class="field" style="margin-top: 12px;">
+          <span>Código HTML</span>
+          <textarea id="manual-html" rows="8" placeholder="Cole aqui o <html>...</html>" style="width:100%; resize:vertical; font-family: ui-monospace, 'SF Mono', Consolas, monospace; font-size:12px;" required></textarea>
+        </label>
+        
+        <p id="manual-feedback" class="feedback" style="margin-top: 8px;"></p>
+
+        <div class="actions" style="margin-top: 16px; justify-content: flex-end;">
+          <button type="button" class="button button--ghost" onclick="document.getElementById('manual-dialog').close()">Cancelar</button>
+          <button type="submit" class="button button--primary" id="manual-submit">Publicar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Dialog: Modo Automático -->
+    <dialog id="auto-generate-dialog" style="max-width: 560px; width: 90%;">
+      <h3 style="margin-bottom: 4px;">⚡ Modo Automático</h3>
+      <p id="auto-count-info" style="color: var(--fg-secondary); font-size: 14px; margin-bottom: 16px;">Carregando…</p>
+
+      <form id="auto-generate-form">
+        <p style="font-size: 13px; color: var(--fg-tertiary); margin-bottom: 16px;">O design e a paleta de cores dos sites serão gerados automaticamente baseados no setor de cada negócio.</p>
+
+        <div id="auto-generate-log" style="display:none; margin-top: 16px; background: var(--surface-alt); border-radius: 8px; border:1px solid var(--border); padding: 12px; max-height: 240px; overflow-y: auto; font-size: 13px; font-family: ui-monospace, 'SF Mono', Consolas, monospace;"></div>
+
+        <div id="auto-progress-wrap" style="display:none; margin-top: 12px;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:12px; color:var(--fg-secondary);">
+            <span id="auto-progress-label">Aguardando…</span>
+            <span id="auto-progress-count">0/0</span>
+          </div>
+          <div style="background:var(--border); border-radius:99px; height:6px; overflow:hidden;">
+            <div id="auto-progress-bar" style="height:100%; width:0%; background:var(--accent); transition:width 0.4s ease; border-radius:99px;"></div>
+          </div>
+        </div>
+
+        <div class="actions" style="margin-top: 16px; justify-content: flex-end;">
+          <button type="button" class="button button--ghost" id="auto-cancel-btn" onclick="document.getElementById('auto-generate-dialog').close()">Cancelar</button>
+          <button type="submit" class="button button--primary" id="auto-generate-submit">⚡ Iniciar Geração</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Dialog: Envio via Evolution API -->
+    <dialog id="evo-send-dialog" style="max-width: 560px; width: 90%;">
+      <h3 style="margin-bottom: 4px;">📱 Enviar via WhatsApp — <span id="evo-lead-name"></span></h3>
+      <p style="color: var(--fg-secondary); font-size: 13px; margin-bottom: 12px;">O texto abaixo é a mensagem padrão Passo 1. Edite antes de enviar se precisar personalizar.</p>
+
+      <form id="evo-send-form">
+        <input type="hidden" id="evo-lead-id">
+        <label class="field" style="margin-top: 4px;">
+          <span>Mensagem</span>
+          <textarea id="evo-message-text" rows="10" style="width:100%; resize:vertical; font-size:13px; line-height:1.6;"></textarea>
+        </label>
+
+        <p id="evo-feedback" style="margin-top: 10px; font-size: 13px; min-height: 18px;"></p>
+
+        <div class="actions" style="margin-top: 16px; justify-content: flex-end;">
+          <button type="button" class="button button--ghost" onclick="document.getElementById('evo-send-dialog').close()">Cancelar</button>
+          <button type="submit" class="button button--primary" id="evo-send-submit" style="background:#25D366; border-color:transparent;">
+            <svg style="width:14px; margin-right:6px;" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+            Enviar agora
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="/assets/app.js?v=8"></script>
+  </body>
+</html>
