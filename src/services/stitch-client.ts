@@ -69,7 +69,7 @@ async function callStitchJsonRpc(method: string, internalMethod: string, params:
  * Envia o printscreen da página + Prompt para a API do Stitch via REST robusto, sem EventSources
  * e retorna o index.html gerado.
  */
-export async function generateSite(imageBuffers: Buffer[], promptText?: string): Promise<{ html: string; stitchProjectId: string; stitchSessionId: string }> {
+export async function generateSite(branding: string, promptText?: string): Promise<{ html: string; stitchProjectId: string; stitchSessionId: string }> {
   const defaultPromptPath = path.resolve(process.cwd(), "data", "site-prompt.txt");
   let finalPrompt = "";
   
@@ -78,24 +78,28 @@ export async function generateSite(imageBuffers: Buffer[], promptText?: string):
     finalPrompt = promptText ? `${rawPrompt}\n\n[INSTRUÇÃO DO CLIENTE]: ${promptText}` : rawPrompt;
   } catch (error) {
     console.error("Não foi possível ler o site-prompt.txt base.");
-    finalPrompt = promptText || "Gere um site premium baseado na imagem.";
+    finalPrompt = promptText || "Gere um site premium baseado nas informações.";
   }
 
-  finalPrompt += `\n\n[INSTRUÇÃO CRÍTICA MCP STITCH]: Atue como um Engenheiro Front-end Senior. Foi enviada ao menos 1 imagem de referência do negócio. Seu objetivo é GERAR O CÓDIGO COMPLETO (HTML + Tailwind CSS inline) de uma Landing Page ultra-premium, moderna e de altíssima conversão. O IDIOMA DEVE SER 100% PORTUGUÊS DO BRASIL (PT-BR). NENHUM TEXTO EM INGLÊS.
+  const brandingInstructions = branding 
+    ? branding 
+    : "Padrão neutro, elegante e profissional. Preto, branco e tons de cinza ou uma cor de destaque leve.";
+
+  finalPrompt += `\n\n[INSTRUÇÃO CRÍTICA MCP STITCH]: Atue como um Engenheiro Front-end Senior. Seu objetivo é GERAR O CÓDIGO COMPLETO (HTML + Tailwind CSS inline) de uma Landing Page ultra-premium, moderna e de altíssima conversão. O IDIOMA DEVE SER 100% PORTUGUÊS DO BRASIL (PT-BR). NENHUM TEXTO EM INGLÊS.
   
 ATENÇÃO À ESCALA E LAYOUT: 
 1. Use proporções elegantes e contidas. Evite fontes exageradamente gigantes (limite títulos Desktop a 4xl ou 5xl no máximo).
 2. O conteúdo principal deve estar sempre dentro de containers centralizados (ex: max-w-7xl mx-auto) com espaçamentos laterais seguros (px-6 md:px-12).
 3. Preste muita atenção em imagens: elas NÃO devem estourar os limites da tela cortando informação importante. Use proporções adequadas (ex: aspect-video, object-cover) com limites de largura.
-4. FIDELIDADE DE CORES (MUITO IMPORTANTE): Extraia a paleta de cores ESTRITAMENTE da(s) imagem(ns) enviada(s). Se a marca na imagem for Preto e Branco, você DEVE gerar o site INTEIRO em tons de preto, branco e cinza. NUNCA adicione "cores bonitas" (como azul, vermelho ou verde) apenas para decorar, se essas cores não fizerem parte do branding original do cliente lido na foto.
+4. FIDELIDADE DE CORES E BRANDING (MUITO IMPORTANTE): Use ESTRITAMENTE as seguintes cores e estilo informados pelo cliente:
+"${brandingInstructions}"
+NUNCA adicione "cores bonitas" aleatórias apenas para decorar, se essas cores não fizerem parte do branding estipulado.
 
-OBRIGATÓRIO: NÃO crie documentações de design system ou relatórios textuais. GERE DIRETAMENTE A TELA FINAL e retorne o código HTML funcional em um único arquivo, reproduzindo a identidade visual exata contida nas imagens. O resultado deve ser o código source final.`;
+OBRIGATÓRIO: NÃO crie documentações de design system ou relatórios textuais. GERE DIRETAMENTE A TELA FINAL e retorne o código HTML funcional em um único arquivo. O resultado deve ser o código source final.`;
 
   console.log("Iniciando bypass MCP - Criando Projeto na infra do Stitch...");
 
-  const imagesBase64 = imageBuffers.map(buf => `data:image/png;base64,${buf.toString("base64")}`);
-  const multipleImagesPrompt = imagesBase64.map((img, i) => `[Referência Visual ${i+1}]: \n![Ref](${img})\n`).join("\n");
-  const fullPrompt = finalPrompt + "\n\n" + multipleImagesPrompt;
+  const fullPrompt = finalPrompt;
 
   try {
     // 1. Criar novo Projeto

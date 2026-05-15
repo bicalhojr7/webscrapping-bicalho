@@ -137,22 +137,8 @@ export async function registerLeadRoutes(app: FastifyInstance): Promise<void> {
 
   app.post("/api/leads/:id/generate-site", async (request, reply) => {
     const { id } = paramsSchema.parse(request.params);
-    const parts = request.parts();
-    const buffers: Buffer[] = [];
-
-    for await (const part of parts) {
-      if (part.type === "file" && part.fieldname === "files") {
-        const fileBuffer = await part.toBuffer();
-        if (fileBuffer.length > 0) {
-           buffers.push(fileBuffer);
-        }
-      }
-    }
-
-    if (buffers.length === 0) {
-      reply.code(400);
-      return { message: "Você precisa enviar ao menos 1 imagem de referência." };
-    }
+    const bodyArgs = request.body as any;
+    const branding = bodyArgs?.branding || "";
 
     // Buscamos o Lead pelo ID para pegar os dados e injetar na geração
     const leadsList = await repository.list();
@@ -169,7 +155,7 @@ DADOS OBRIGATÓRIOS DO NEGÓCIO (USE ESTES DADOS PARA CRIAR A COPY DO SITE, SUBS
     // Call stitched AI
     let stitchResult: { html: string; stitchProjectId: string; stitchSessionId: string };
     try {
-      stitchResult = await generateSite(buffers, businessContext);
+      stitchResult = await generateSite(branding, businessContext);
     } catch (error) {
       request.log.error({ err: error }, "Erro na geração do site pelo Stitch");
       reply.code(500);

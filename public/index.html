@@ -188,16 +188,15 @@ Vê se faz sentido pro momento de vocês dar essa evoluída. Se fizer, a gente b
     <!-- Dialog: Gerar Site via Stitch -->
     <dialog id="generate-dialog">
       <h3>Criar Site — <span id="generate-lead-name"></span></h3>
-      <p>Suba o print do Instagram desta empresa para a IA do Stitch copiar a identidade e gerar a Landing Page.</p>
+      <p>Digite as cores e a identidade da marca para a IA do Stitch gerar a Landing Page. Ex: "Cores predominantes: Branco e Amarelo, estilo moderno".</p>
       
       <form id="generate-form">
         <input type="hidden" id="generate-lead-id">
         <label class="field" style="margin-top: 12px;">
-          <span>Imagem de Referência (Máx 3)</span>
-          <input type="file" id="generate-image" accept="image/*" multiple style="padding: 8px;">
+          <span>Cores / Branding (Opcional)</span>
+          <input type="text" id="generate-branding" placeholder="Ex: Branco e amarelo" style="width: 100%; padding: 8px;">
         </label>
-        <p style="font-size: 12px; color: var(--fg-tertiary); margin-top: -4px;">Pode dar <strong>Ctrl+V</strong> para colar o print direto.</p>
-        <div id="generate-preview" style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; min-height:40px; border-radius:6px; border:1px dashed var(--border-strong); padding:6px;"></div>
+        <p style="font-size: 12px; color: var(--fg-tertiary); margin-top: -4px;">Se deixar em branco, a IA usará um padrão neutro elegante.</p>
         
         <p id="generate-feedback" class="feedback"></p>
 

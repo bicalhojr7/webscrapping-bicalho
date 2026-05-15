@@ -600,45 +600,31 @@ document.addEventListener("paste", (e) => {
 
 if (generateForm) {
   const imageInput = document.getElementById("generate-image");
-  imageInput.addEventListener("change", (e) => {
-    handleNewFiles(e.target.files);
-    e.target.value = ""; // reseta o input nativo para permitir adicionar as mesmas caso apagadas
-  });
+  if (imageInput) {
+    imageInput.addEventListener("change", (e) => {
+      handleNewFiles(e.target.files);
+      e.target.value = ""; 
+    });
+  }
 
   generateForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const leadId = document.getElementById("generate-lead-id").value;
+    const brandingInput = document.getElementById("generate-branding");
+    const brandingText = brandingInput ? brandingInput.value : "";
     const feedback = document.getElementById("generate-feedback");
     const submitBtn = document.getElementById("generate-submit");
 
-    if (pendingFiles.length === 0) {
-      feedback.textContent = "Cole (Ctrl+V) ou selecione pelo menos 1 imagem.";
-      feedback.style.color = "var(--red)";
-      return;
-    }
-
-    const formData = new FormData();
-    
-    // Process files with client-side compression to avoid massive Base64 payloads killing the Stitch API
-    for (const f of pendingFiles) {
-      try {
-        const compressedFile = await compressImage(f);
-        formData.append("files", compressedFile);
-      } catch (e) {
-        console.warn("Falha ao comprimir imagem, enviando original:", e);
-        formData.append("files", f);
-      }
-    }
-
     submitBtn.disabled = true;
     submitBtn.textContent = "Gerando…";
-    feedback.innerHTML = `Analisando ${pendingFiles.length} imagem(ns). Isso pode levar 1–3 min.`;
+    feedback.innerHTML = `Gerando site... Isso pode levar 1–3 min.`;
     feedback.style.color = "var(--fg-secondary)";
 
     try {
       const res = await fetch(`/api/leads/${encodeURIComponent(leadId)}/generate-site`, {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ branding: brandingText })
       });
 
       const payload = await res.json();
