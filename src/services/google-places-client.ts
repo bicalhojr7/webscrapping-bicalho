@@ -61,14 +61,23 @@ export class GooglePlacesClient {
     const placesToFetch = allPlaces.slice(0, input.maxResults);
     const detailedLeads: (LeadCandidate | null)[] = [];
 
-    // Chunk size 20 to avoid 429 Too Many Requests
-    const chunkSize = 20;
+    // Chunk size 10 to avoid 429 Too Many Requests and reduce execution time
+    const chunkSize = 10;
     for (let i = 0; i < placesToFetch.length; i += chunkSize) {
       const chunk = placesToFetch.slice(i, i + chunkSize);
-      const chunkResults = await Promise.all(
+      
+      const chunkResultsSettled = await Promise.allSettled(
         chunk.map(async (place) => this.fetchLead(place.id, apiKey))
       );
-      detailedLeads.push(...chunkResults);
+      
+      // Filter out rejected promises (failed requests due to 429 or other errors)
+      for (const result of chunkResultsSettled) {
+        if (result.status === "fulfilled") {
+          detailedLeads.push(result.value);
+        } else {
+          console.warn(`[GooglePlaces] Failed to fetch details for a lead:`, result.reason?.message || result.reason);
+        }
+      }
     }
 
     return detailedLeads.filter((lead): lead is LeadCandidate => lead !== null);

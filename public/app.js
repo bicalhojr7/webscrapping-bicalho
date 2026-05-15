@@ -422,42 +422,58 @@ async function handleSearch(event) {
   event.preventDefault();
   const query = elements.query.value.trim();
   const maxResults = Number(elements.maxResults.value || 10);
+  const submitBtn = elements.form.querySelector('button[type="submit"]');
 
   if (!query) {
     setFeedback("Digite uma busca antes de continuar.", "error");
     return;
   }
 
-  setFeedback("Buscando e atualizando a fila local...", "neutral");
-
-  const response = await fetch("/api/leads/search", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      query,
-      maxResults,
-      persist: true
-    })
-  });
-
-  const payload = await response.json();
-
-  if (!response.ok) {
-    setFeedback(payload.message || "Nao foi possivel concluir a busca.", "error");
-    return;
+  setFeedback("Buscando e atualizando a fila local... (isso pode levar 1 minuto)", "neutral");
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Buscando...";
   }
 
-  setFeedback(`Busca concluida. ${payload.total} lead(s) encontrados nesta rodada.`, "success");
-  await loadLeads();
+  try {
+    const response = await fetch("/api/leads/search", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        query,
+        maxResults,
+        persist: true
+      })
+    });
+
+    const contentType = response.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      const textError = await response.text();
+      throw new Error(`Erro no Servidor/Timeout Vercel (Status: ${response.status}). A busca demorou demais ou falhou gravemente.`);
+    }
+
+    const payload = await response.json();
+
+    if (!response.ok) {
+      setFeedback(payload.message || "Não foi possivel concluir a busca.", "error");
+      return;
+    }
+
+    setFeedback(`Busca concluida. ${payload.total} lead(s) encontrados nesta rodada.`, "success");
+    await loadLeads();
+  } catch (error) {
+    setFeedback(error.message || "Erro inesperado ou Timeout de conexão.", "error");
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Buscar";
+    }
+  }
 }
 
-elements.form.addEventListener("submit", (event) => {
-  handleSearch(event).catch((error) => {
-    setFeedback(error instanceof Error ? error.message : "Erro inesperado.", "error");
-  });
-});
+elements.form.addEventListener("submit", handleSearch);
 
 if (elements.btnClear) {
   elements.btnClear.addEventListener("click", async () => {
