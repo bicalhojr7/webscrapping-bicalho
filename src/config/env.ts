@@ -28,6 +28,7 @@ const envSchema = z.object({
   SUPABASE_URL: z.string().trim().min(1).optional(),
   SUPABASE_ANON_KEY: z.string().trim().min(1).optional(),
   SUPABASE_KEY: z.string().trim().min(1).optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().trim().min(1).optional(),
 });
 
 export const env = envSchema.parse(process.env);

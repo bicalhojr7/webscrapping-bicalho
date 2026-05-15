@@ -1,11 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 import { env } from "./env.js";
 
-if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
-  console.warn("⚠️ Variáveis SUPABASE_URL ou SUPABASE_KEY não estão definidas!");
+if (!env.SUPABASE_URL || (!env.SUPABASE_SERVICE_ROLE_KEY && !env.SUPABASE_KEY)) {
+  console.warn("⚠️ Variáveis do Supabase (URL e Service Role Key) não estão definidas!");
 }
 
 export const supabase = createClient(
-  process.env.SUPABASE_URL || "https://placeholder.supabase.co",
-  process.env.SUPABASE_KEY || "placeholder_key"
+  env.SUPABASE_URL || "https://placeholder.supabase.co",
+  env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_KEY || "placeholder_key"
 );
