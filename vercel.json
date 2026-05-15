@@ -3,7 +3,8 @@
   "builds": [
     {
       "src": "api/serverless.ts",
-      "use": "@vercel/node"
+      "use": "@vercel/node",
+      "config": { "maxDuration": 60 }
     },
     {
       "src": "public/**/*",
@@ -22,10 +23,5 @@
       "path": "/api/cron/cleanup-sites",
       "schedule": "0 4 * * *"
     }
-  ],
-  "functions": {
-    "api/serverless.ts": {
-      "maxDuration": 60
-    }
-  }
+  ]
 }
