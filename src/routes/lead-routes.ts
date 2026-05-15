@@ -147,7 +147,7 @@ export async function registerLeadRoutes(app: FastifyInstance): Promise<void> {
     const businessContext = `
 DADOS OBRIGATÓRIOS DO NEGÓCIO (USE ESTES DADOS PARA CRIAR A COPY DO SITE, SUBSTITUINDO QUALQUER EXEMPLO):
 - Nome Oficial do Negócio: ${targetLead?.companyName || "Empresa Especializada"}
-- Especialidade: Deduzida a partir do nome e das imagens.
+- Especialidade: Deduzida a partir do nome da empresa e do branding.
 - Meta de Conversão: Fazer o cliente entrar em contato para agendar ou pedir orçamento.
 - Tom de Voz da Copy: Altamente profissional, persuasivo, autoridade, luxo/premium.
     `.trim();
