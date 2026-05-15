@@ -1,31 +1,40 @@
-// Inicialização do Supabase Auth
-// ATENÇÃO: Substitua os valores abaixo pela sua URL e Anon Key do Supabase
-const SUPABASE_URL = "https://SEU_PROJETO.supabase.co";
-const SUPABASE_ANON_KEY = "SUA_ANON_KEY";
-
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Variável global do cliente Supabase
+let supabase;
 
 // Intercepta todas as requisições para a API e insere o token do Supabase
 const originalFetch = window.fetch;
 window.fetch = async function () {
     let [resource, config] = arguments;
-    if (typeof resource === 'string' && resource.startsWith('/api/')) {
+    if (typeof resource === 'string' && resource.startsWith('/api/') && resource !== '/api/config') {
         config = config || {};
         config.headers = config.headers || {};
-        const { data } = await supabase.auth.getSession();
-        if (data.session) {
-             config.headers['Authorization'] = `Bearer ${data.session.access_token}`;
+        if (supabase) {
+            const { data } = await supabase.auth.getSession();
+            if (data.session) {
+                 config.headers['Authorization'] = `Bearer ${data.session.access_token}`;
+            }
         }
     }
     return originalFetch.call(this, resource, config);
 };
 
-// Lógica da Tela de Login
+// Lógica principal do app
 document.addEventListener("DOMContentLoaded", async () => {
     const loginOverlay = document.getElementById("login-overlay");
     const appShell = document.getElementById("app-shell");
     const loginForm = document.getElementById("login-form");
     const loginFeedback = document.getElementById("login-feedback");
+
+    // Inicialização segura com credenciais protegidas via backend
+    try {
+        const configRes = await fetch("/api/config");
+        const envConfig = await configRes.json();
+        supabase = window.supabase.createClient(envConfig.SUPABASE_URL, envConfig.SUPABASE_ANON_KEY);
+    } catch (e) {
+        loginFeedback.textContent = "Erro crítico: não foi possível carregar as credenciais do servidor.";
+        console.error(e);
+        return;
+    }
 
     const { data: { session } } = await supabase.auth.getSession();
     

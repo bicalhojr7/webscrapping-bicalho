@@ -23,6 +23,11 @@ const envSchema = z.object({
   // Deployments (Sites Gen)
   SITES_GITHUB_TOKEN: z.string().trim().min(1).optional(),
   SITES_VERCEL_TOKEN: z.string().trim().min(1).optional(),
+
+  // Supabase Client Config
+  SUPABASE_URL: z.string().trim().min(1).optional(),
+  SUPABASE_ANON_KEY: z.string().trim().min(1).optional(),
+  SUPABASE_KEY: z.string().trim().min(1).optional(),
 });
 
 export const env = envSchema.parse(process.env);
