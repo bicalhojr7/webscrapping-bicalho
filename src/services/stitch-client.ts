@@ -83,7 +83,7 @@ export async function generateSite(branding: string, promptText?: string): Promi
 
   const brandingInstructions = branding 
     ? branding 
-    : "Padrão neutro, elegante e profissional. Preto, branco e tons de cinza ou uma cor de destaque leve.";
+    : "Você DEVE deduzir a paleta de cores ideal e mais conversiva com base no Nicho/Especialidade da empresa. Escolha cores que transmitam autoridade e confiança para este setor específico.";
 
   finalPrompt += `\n\n[INSTRUÇÃO CRÍTICA MCP STITCH]: Atue como um Engenheiro Front-end Senior. Seu objetivo é GERAR O CÓDIGO COMPLETO (HTML + Tailwind CSS inline) de uma Landing Page ultra-premium, moderna e de altíssima conversão. O IDIOMA DEVE SER 100% PORTUGUÊS DO BRASIL (PT-BR). NENHUM TEXTO EM INGLÊS.
   
@@ -91,9 +91,9 @@ ATENÇÃO À ESCALA E LAYOUT:
 1. Use proporções elegantes e contidas. Evite fontes exageradamente gigantes (limite títulos Desktop a 4xl ou 5xl no máximo).
 2. O conteúdo principal deve estar sempre dentro de containers centralizados (ex: max-w-7xl mx-auto) com espaçamentos laterais seguros (px-6 md:px-12).
 3. Preste muita atenção em imagens: elas NÃO devem estourar os limites da tela cortando informação importante. Use proporções adequadas (ex: aspect-video, object-cover) com limites de largura.
-4. FIDELIDADE DE CORES E BRANDING (MUITO IMPORTANTE): Use ESTRITAMENTE as seguintes cores e estilo informados pelo cliente:
+4. FIDELIDADE DE CORES E BRANDING (MUITO IMPORTANTE): Use ESTRITAMENTE as seguintes diretrizes de cores:
 "${brandingInstructions}"
-NUNCA adicione "cores bonitas" aleatórias apenas para decorar, se essas cores não fizerem parte do branding estipulado.
+As cores devem sempre manter uma estética premium, contrastante e de fácil leitura.
 
 OBRIGATÓRIO: NÃO crie documentações de design system ou relatórios textuais. GERE DIRETAMENTE A TELA FINAL e retorne o código HTML funcional em um único arquivo. O resultado deve ser o código source final.`;
 
