@@ -275,7 +275,12 @@ function createLeadCard(lead) {
         document.getElementById("generate-lead-id").value = lead.id;
         document.getElementById("generate-lead-name").textContent = lead.companyName;
         document.getElementById("generate-feedback").textContent = "";
-        document.getElementById("generate-image").value = "";
+        
+        const brandingInput = document.getElementById("generate-branding");
+        if (brandingInput) brandingInput.value = "";
+        
+        const imageInput = document.getElementById("generate-image");
+        if (imageInput) imageInput.value = "";
         
         // Reset preview states on open
         if (typeof pendingFiles !== "undefined") {
