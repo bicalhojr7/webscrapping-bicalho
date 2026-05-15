@@ -549,10 +549,7 @@ if (generateForm) {
         <a href="${payload.deployUrl}" target="_blank" style="color:var(--accent)">${payload.deployUrl}</a><br/>
         <a href="${payload.githubUrl}" target="_blank" style="color:var(--fg-tertiary)">${payload.githubUrl}</a>
       `;
-      // Clear queue for next usage
-      pendingFiles = [];
-      renderPreviews();
-      
+
       // Atualiza a listagem de leads para exibir os botões novos depois de 1.5s
       setTimeout(() => loadLeads(), 1500);
     } catch (err) {
