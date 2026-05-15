@@ -279,15 +279,6 @@ function createLeadCard(lead) {
         const brandingInput = document.getElementById("generate-branding");
         if (brandingInput) brandingInput.value = "";
         
-        const imageInput = document.getElementById("generate-image");
-        if (imageInput) imageInput.value = "";
-        
-        // Reset preview states on open
-        if (typeof pendingFiles !== "undefined") {
-            pendingFiles = [];
-            if (typeof renderPreviews === "function") renderPreviews();
-        }
-        
         document.getElementById("generate-dialog").showModal();
       });
       return;
@@ -519,114 +510,13 @@ loadLeads().catch((error) => {
   setFeedback(error instanceof Error ? error.message : "Erro inesperado.", "error");
 });
 // ─────────────────────────────────────────────────────────────
-// COMPRESSÃO DE IMAGENS CLIENT-SIDE (Para evitar erros na API)
+// COMPRESSÃO E UPLOAD DE IMAGENS REMOVIDOS (Agora usa texto)
 // ─────────────────────────────────────────────────────────────
-function compressImage(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = event => {
-      const img = new Image();
-      img.src = event.target.result;
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        const MAX_WIDTH = 800; // Resolução suficiente para a IA ler a identidade
-        let width = img.width;
-        let height = img.height;
-        
-        if (width > MAX_WIDTH) {
-          height = Math.round((height * MAX_WIDTH) / width);
-          width = MAX_WIDTH;
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, width, height);
-
-        canvas.toBlob(blob => {
-          if (blob) {
-            const compressedFile = new File([blob], file.name, {
-              type: "image/jpeg",
-              lastModified: Date.now()
-            });
-            resolve(compressedFile);
-          } else {
-            reject(new Error("Erro no toBlob"));
-          }
-        }, "image/jpeg", 0.6); // 60% quality JPEG (muito leve)
-      };
-      img.onerror = error => reject(error);
-    };
-    reader.onerror = error => reject(error);
-  });
-}
 
 const generateForm = document.getElementById("generate-form");
-let pendingFiles = [];
-
-function renderPreviews() {
-  const container = document.getElementById("generate-preview");
-  container.innerHTML = "";
-  if (pendingFiles.length === 0) {
-    container.innerHTML = `<span style="color:var(--fg-tertiary); font-size:12px; margin:auto;">Nenhuma imagem inserida (máx 3)</span>`;
-    return;
-  }
-  
-  pendingFiles.forEach((file, index) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const wrapper = document.createElement("div");
-      wrapper.style.cssText = "position: relative; width: 56px; height: 56px; border-radius: 6px; overflow: hidden; border: 1px solid var(--border-strong);";
-      
-      const img = document.createElement("img");
-      img.src = e.target.result;
-      img.style.cssText = "width: 100%; height: 100%; object-fit: cover;";
-      
-      const removeBtn = document.createElement("button");
-      removeBtn.innerHTML = "✖";
-      removeBtn.style.cssText = "position: absolute; top: -2px; right: -2px; background: var(--red); color: white; border: none; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; cursor: pointer; display:flex; align-items:center; justify-content:center;";
-      removeBtn.onclick = (event) => {
-        event.preventDefault();
-        pendingFiles.splice(index, 1);
-        renderPreviews();
-      };
-      
-      wrapper.appendChild(img);
-      wrapper.appendChild(removeBtn);
-      container.appendChild(wrapper);
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
-function handleNewFiles(files) {
-  for (const file of files) {
-    if (file.type.startsWith("image/") && pendingFiles.length < 3) {
-      pendingFiles.push(file);
-    }
-  }
-  renderPreviews();
-}
-
-document.addEventListener("paste", (e) => {
-  const dialog = document.getElementById("generate-dialog");
-  if (!dialog.open) return; // Só ouve o paste se o modal estiver aberto
-  e.preventDefault();
-  
-  if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length > 0) {
-    handleNewFiles(e.clipboardData.files);
-  }
-});
 
 if (generateForm) {
-  const imageInput = document.getElementById("generate-image");
-  if (imageInput) {
-    imageInput.addEventListener("change", (e) => {
-      handleNewFiles(e.target.files);
-      e.target.value = ""; 
-    });
-  }
+
 
   generateForm.addEventListener("submit", async (e) => {
     e.preventDefault();
