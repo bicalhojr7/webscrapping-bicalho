@@ -20,10 +20,9 @@ Se faltar informação sobre dores ou serviços específicos, faça suposições
 
 ---
 
-### **OBJETIVO DE CONVERSÃO EXTREMA**
-
+### **OBJETIVO DE CONVERSÃO EXTREMA (ULTRA PROFISSIONAL)**
 Criar a estrutura HTML com Tailwind CSS em um único arquivo, garantindo:
-- **Clareza Estratégica:** Hero Section de impacto que vai direto ao ponto.
+- **Hero Section de Alto Impacto:** O site DEVE começar com uma **SUPER HEADLINE** (H1) centralizada ou alinhada à esquerda que capture imediatamente a atenção do visitante (promessa principal), seguida de uma **SUB-HEADLINE** (p) explicando como a empresa resolve o problema do cliente de forma única.
 - **Copywriting Matador (PT-BR):** Foco no "Outcome" (resultado final) que o cliente quer. Mostre a dor resolvida e o ganho prático ou emocional.
 - **Autoridade Visual:** Placeholders lógicos de credibilidade (avaliações 5 estrelas do Google, anos de experiência).
 - **Quebra de Objeções:** Responda implicitamente as principais dúvidas no decorrer do layout.
@@ -33,12 +32,12 @@ Criar a estrutura HTML com Tailwind CSS em um único arquivo, garantindo:
 
 ### **REGRAS INQUEBRÁVEIS DE DESIGN E INTERFACE (ALTO PADRÃO)**
 
-Sua entrega precisa gerar o efeito "WOW" imediato no cliente. 
+Sua entrega precisa gerar o efeito "WOW" imediato no cliente. O site DEVE parecer ter sido feito por um estúdio de design de R$ 10.000.
 
-1. **Estética Premium & Fidelidade Absoluta ao Branding (MUITO IMPORTANTE):**
+1. **Fidelidade Absoluta ao Branding e Imagens Enviadas (CRÍTICO):**
    - O seu trabalho primário é analisar as IMAGENS DE REFERÊNCIA. **EXTRAIA ESTRITAMENTE as cores exatas (Branding)** das imagens e aplique como paleta do site.
-   - Exemplo crítico: Se a imagem for Preto e Branco, o site inteiro DEVE SER Preto e Branco (tons de cinza, zinc, slate). NUNCA invente cores como azul, vermelho ou verde se elas não existirem no material enviado pelo cliente.
-   - Use as tendências modernas (Glassmorphism, Sombras refinadas) mas SEMPRE respeitando o DNA da cor da marca. Use Dark Mode apenas se fizer sentido com a paleta original, ou Clean Mode de alto padrão se a marca for clara.
+   - Se a imagem enviada tiver uma cor primária (ex: Azul Marinho) e secundária (ex: Dourado), O SITE INTEIRO DEVE UTILIZAR ESTAS CORES (para botões, destaques, backgrounds sutis). NUNCA invente cores que fujam da identidade visual da empresa!
+   - Se o logo/imagem for escuro, faça um Dark Mode elegantíssimo. Se for claro, faça um Clean Mode impecável. 
    
 2. **Micro-Animações e Dinamismo:**
    - Adicione classes do Tailwind para hover e transições suaves (`transition-all duration-300`, `hover:scale-105`, `hover:shadow-2xl`). O site deve parecer "vivo" e interativo quando o usuário passar o mouse.

@@ -4,6 +4,7 @@ import multipart from "@fastify/multipart";
 
 import { registerLeadRoutes } from "./routes/lead-routes.js";
 import { registerWebRoutes } from "./routes/web-routes.js";
+import { registerCronRoutes } from "./routes/cron-routes.js";
 import { supabase } from "./config/supabase.js";
 
 export async function buildApp() {
@@ -57,5 +58,6 @@ export async function buildApp() {
 
   await registerLeadRoutes(app);
   await registerWebRoutes(app);
+  await registerCronRoutes(app);
   return app;
 }
