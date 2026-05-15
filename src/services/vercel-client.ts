@@ -38,13 +38,27 @@ export async function deployToVercel(projectName: string, githubOwner: string, g
   
   const cleanName = projectName.toLowerCase().replace(/[^a-z0-9-]/g, "-");
   
-  // O array `alias` contém os domínios públicos de produção.
-  // result.url muitas vezes é a URL do deploy específico que exige login se houver Vercel Protection ativado.
-  let publicUrl = `https://${result.url}`; // fallback
-  if (result.alias && result.alias.length > 0) {
-    publicUrl = `https://${result.alias[0]}`;
-  } else {
-    // Caso não retorne alias, tenta o domínio padrão principal:
+  let publicUrl = `https://${result.url}`; // fallback para a url de deploy (que tem senha)
+
+  try {
+    // Busca os detalhes do projeto recém-criado para pegar o domínio limpo de produção (que é aberto ao público)
+    const projectRes = await fetch(`https://api.vercel.com/v9/projects/${cleanName}`, {
+      headers: { "Authorization": `Bearer ${VERCEL_TOKEN}` }
+    });
+    if (projectRes.ok) {
+      const projectData = await projectRes.json();
+      if (projectData.targets?.production?.alias?.[0]) {
+        publicUrl = `https://${projectData.targets.production.alias[0]}`;
+      } else if (projectData.alias && projectData.alias.length > 0) {
+        publicUrl = `https://${projectData.alias[0].domain}`;
+      } else {
+        publicUrl = `https://${cleanName}.vercel.app`;
+      }
+    } else {
+      publicUrl = `https://${cleanName}.vercel.app`;
+    }
+  } catch (e) {
+    console.error("Erro ao buscar detalhes do projeto Vercel:", e);
     publicUrl = `https://${cleanName}.vercel.app`;
   }
   
