@@ -38,7 +38,7 @@ export async function deployToVercel(projectName: string, githubOwner: string, g
   
   const cleanName = projectName.toLowerCase().replace(/[^a-z0-9-]/g, "-");
   
-  let publicUrl = `https://${result.url}`; // fallback para a url de deploy (que tem senha)
+  let publicUrl = `https://${cleanName}.vercel.app`; // fallback inicial limpo
 
   try {
     // Busca os detalhes do projeto recém-criado para pegar o domínio limpo de produção (que é aberto ao público)
@@ -47,19 +47,30 @@ export async function deployToVercel(projectName: string, githubOwner: string, g
     });
     if (projectRes.ok) {
       const projectData = await projectRes.json();
-      if (projectData.targets?.production?.alias?.[0]) {
-        publicUrl = `https://${projectData.targets.production.alias[0]}`;
-      } else if (projectData.alias && projectData.alias.length > 0) {
-        publicUrl = `https://${projectData.alias[0].domain}`;
-      } else {
-        publicUrl = `https://${cleanName}.vercel.app`;
+      
+      // Coleta todos os aliases disponíveis (tanto do target production quanto do array geral)
+      let allAliases: string[] = [];
+      if (projectData.targets?.production?.alias) {
+        allAliases.push(...projectData.targets.production.alias);
       }
-    } else {
-      publicUrl = `https://${cleanName}.vercel.app`;
+      if (projectData.alias) {
+        allAliases.push(...projectData.alias.map((a: any) => a.domain));
+      }
+      
+      // Filtra as URLs de deploy (que contêm hash e exigem autenticação)
+      const validAliases = allAliases.filter(domain => 
+        domain !== result.url && 
+        !domain.includes("-projects.vercel.app")
+      );
+
+      if (validAliases.length > 0) {
+        // Pega o alias mais curto (geralmente é o cleanName.vercel.app)
+        validAliases.sort((a, b) => a.length - b.length);
+        publicUrl = `https://${validAliases[0]}`;
+      }
     }
   } catch (e) {
     console.error("Erro ao buscar detalhes do projeto Vercel:", e);
-    publicUrl = `https://${cleanName}.vercel.app`;
   }
   
   // Retornamos logo a URL gerada (ficará acessível em breve).
