@@ -73,6 +73,38 @@ export async function deployToVercel(projectName: string, githubOwner: string, g
     console.error("Erro ao buscar detalhes do projeto Vercel:", e);
   }
   
+  // 3. Aguardar o deploy finalizar (Polling) para evitar 404 (DEPLOYMENT_NOT_FOUND) no frontend
+  let isReady = false;
+  let attempts = 0;
+  const maxAttempts = 20; // max 40 segundos
+
+  while (!isReady && attempts < maxAttempts) {
+    try {
+      const statusRes = await fetch(`https://api.vercel.com/v13/deployments/${result.id}`, {
+        headers: { "Authorization": `Bearer ${VERCEL_TOKEN}` }
+      });
+      if (statusRes.ok) {
+        const statusData = await statusRes.json();
+        const state = statusData.readyState;
+        
+        if (state === "READY" || state === "ERROR" || state === "CANCELED") {
+          isReady = true;
+          if (state !== "READY") {
+            console.warn(`Deploy finalizado com status de erro ou cancelado: ${state}`);
+          }
+        }
+      }
+    } catch (e) {
+      // Ignora erros de rede no polling
+    }
+    
+    if (!isReady) {
+      await new Promise(r => setTimeout(r, 2000));
+      attempts++;
+    }
+  }
+
+  
   // Retornamos logo a URL gerada (ficará acessível em breve).
   return {
     deployId: result.id,
