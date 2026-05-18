@@ -59,21 +59,39 @@ export async function deployToVercel(projectName: string, githubOwner: string, g
         if (state === "READY" || state === "ERROR" || state === "CANCELED") {
           isReady = true;
           
-          if (state === "READY" && statusData.alias && statusData.alias.length > 0) {
-            // Extrai as URLs reais que a Vercel assinou para este deploy
-            const validAliases = statusData.alias.filter((domain: string) => 
-              !domain.includes("-git-") && 
-              !domain.includes("-projects.vercel.app") &&
-              domain !== result.url
-            );
+          if (state === "READY") {
+            try {
+              // Buscar os detalhes do projeto para pegar o alias limpo principal de produção (como mk-fitness-studio-treinamento-perso-chi.vercel.app)
+              const projectRes = await fetch(`https://api.vercel.com/v9/projects/${cleanName}`, {
+                headers: { "Authorization": `Bearer ${VERCEL_TOKEN}` }
+              });
+              if (projectRes.ok) {
+                const projectData = await projectRes.json();
+                let allAliases: string[] = [];
+                if (projectData.targets?.production?.alias) {
+                  allAliases.push(...projectData.targets.production.alias);
+                }
+                if (projectData.alias) {
+                  allAliases.push(...projectData.alias.map((a: any) => a.domain));
+                }
+                
+                // Filtra as URLs de branch/deploy e fica só com as definitivas
+                const validAliases = allAliases.filter(domain => 
+                  !domain.includes("-git-") && 
+                  !domain.includes("-projects.vercel.app") &&
+                  domain !== result.url
+                );
 
-            if (validAliases.length > 0) {
-              // Pega o alias de produção mais curto
-              validAliases.sort((a: string, b: string) => a.length - b.length);
-              publicUrl = `https://${validAliases[0]}`;
-            } else {
-              // Fallback para qualquer alias caso os filtros removam todos
-              publicUrl = `https://${statusData.alias[0]}`;
+                if (validAliases.length > 0) {
+                  validAliases.sort((a, b) => a.length - b.length);
+                  publicUrl = `https://${validAliases[0]}`;
+                } else if (statusData.alias && statusData.alias.length > 0) {
+                  // Fallback para alias do deploy se o projeto não tiver alias válidos ainda
+                  publicUrl = `https://${statusData.alias[0]}`;
+                }
+              }
+            } catch (err) {
+               console.error("Erro ao buscar domínios finais do projeto:", err);
             }
           } else if (state !== "READY") {
             console.warn(`Deploy finalizado com status de erro ou cancelado: ${state}`);
