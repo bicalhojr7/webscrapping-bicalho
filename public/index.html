@@ -202,7 +202,8 @@ Vê se faz sentido pro momento de vocês dar essa evoluída. Se fizer, a gente b
         <p id="generate-feedback" class="feedback"></p>
 
         <div class="actions" style="margin-top: 16px; justify-content: flex-end;">
-          <button type="button" class="button button--ghost" onclick="document.getElementById('generate-dialog').close()">Cancelar</button>
+          <button type="button" class="button button--ghost" onclick="document.getElementById('generate-dialog').close()" id="generate-close">Cancelar</button>
+          <button type="button" class="button button--reject" id="generate-abort" style="display:none;">Parar Geração</button>
           <button type="submit" class="button button--primary" id="generate-submit">Gerar Agora</button>
         </div>
       </form>

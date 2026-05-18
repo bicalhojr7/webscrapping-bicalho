@@ -535,16 +535,25 @@ if (generateForm) {
     const brandingText = brandingInput ? brandingInput.value : "";
     const feedback = document.getElementById("generate-feedback");
     const submitBtn = document.getElementById("generate-submit");
+    const closeBtn = document.getElementById("generate-close");
+    const abortBtn = document.getElementById("generate-abort");
 
-    submitBtn.disabled = true;
-    submitBtn.textContent = "Gerando…";
+    submitBtn.style.display = "none";
+    closeBtn.style.display = "none";
+    abortBtn.style.display = "block";
+    
     feedback.innerHTML = `Gerando site... Isso pode levar 1–3 min.`;
     feedback.style.color = "var(--fg-secondary)";
 
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 130000); // 2 minutos e 10s (pra dar tempo do backend retornar o 504)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 130000); // 2 minutos e 10s
 
+    const onAbortClick = () => {
+       controller.abort();
+    };
+    abortBtn.addEventListener("click", onAbortClick, { once: true });
+
+    try {
       const res = await fetch(`/api/leads/${encodeURIComponent(leadId)}/generate-site`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -553,6 +562,7 @@ if (generateForm) {
       });
 
       clearTimeout(timeoutId);
+      abortBtn.removeEventListener("click", onAbortClick);
 
       const payload = await res.json();
       if (!res.ok) {
@@ -566,18 +576,18 @@ if (generateForm) {
         <a href="${payload.githubUrl}" target="_blank" style="color:var(--fg-tertiary)">${payload.githubUrl}</a>
       `;
 
-      // Atualiza a listagem de leads para exibir os botões novos depois de 1.5s
       setTimeout(() => loadLeads(), 1500);
     } catch (err) {
       if (err.name === 'AbortError') {
-         feedback.textContent = "Falha: O servidor demorou muito para responder (Timeout da IA).";
+         feedback.textContent = "Cancelado: A geração foi interrompida.";
       } else {
          feedback.textContent = "Falha: " + err.message;
       }
       feedback.style.color = "var(--red)";
     } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = "Gerar Agora";
+      submitBtn.style.display = "block";
+      closeBtn.style.display = "block";
+      abortBtn.style.display = "none";
     }
   });
 
