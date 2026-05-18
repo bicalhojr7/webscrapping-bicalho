@@ -40,40 +40,9 @@ export async function deployToVercel(projectName: string, githubOwner: string, g
   
   let publicUrl = `https://${cleanName}.vercel.app`; // fallback inicial limpo
 
-  try {
-    // Busca os detalhes do projeto recém-criado para pegar o domínio limpo de produção (que é aberto ao público)
-    const projectRes = await fetch(`https://api.vercel.com/v9/projects/${cleanName}`, {
-      headers: { "Authorization": `Bearer ${VERCEL_TOKEN}` }
-    });
-    if (projectRes.ok) {
-      const projectData = await projectRes.json();
-      
-      // Coleta todos os aliases disponíveis (tanto do target production quanto do array geral)
-      let allAliases: string[] = [];
-      if (projectData.targets?.production?.alias) {
-        allAliases.push(...projectData.targets.production.alias);
-      }
-      if (projectData.alias) {
-        allAliases.push(...projectData.alias.map((a: any) => a.domain));
-      }
-      
-      // Filtra as URLs de deploy (que contêm hash e exigem autenticação)
-      const validAliases = allAliases.filter(domain => 
-        domain !== result.url && 
-        !domain.includes("-projects.vercel.app")
-      );
 
-      if (validAliases.length > 0) {
-        // Pega o alias mais curto (geralmente é o cleanName.vercel.app)
-        validAliases.sort((a, b) => a.length - b.length);
-        publicUrl = `https://${validAliases[0]}`;
-      }
-    }
-  } catch (e) {
-    console.error("Erro ao buscar detalhes do projeto Vercel:", e);
-  }
   
-  // 3. Aguardar o deploy finalizar (Polling) para evitar 404 (DEPLOYMENT_NOT_FOUND) no frontend
+  // 3. Aguardar o deploy finalizar (Polling) para evitar 404 e para capturar o alias (URL) real
   let isReady = false;
   let attempts = 0;
   const maxAttempts = 20; // max 40 segundos
@@ -89,7 +58,24 @@ export async function deployToVercel(projectName: string, githubOwner: string, g
         
         if (state === "READY" || state === "ERROR" || state === "CANCELED") {
           isReady = true;
-          if (state !== "READY") {
+          
+          if (state === "READY" && statusData.alias && statusData.alias.length > 0) {
+            // Extrai as URLs reais que a Vercel assinou para este deploy
+            const validAliases = statusData.alias.filter((domain: string) => 
+              !domain.includes("-git-") && 
+              !domain.includes("-projects.vercel.app") &&
+              domain !== result.url
+            );
+
+            if (validAliases.length > 0) {
+              // Pega o alias de produção mais curto
+              validAliases.sort((a: string, b: string) => a.length - b.length);
+              publicUrl = `https://${validAliases[0]}`;
+            } else {
+              // Fallback para qualquer alias caso os filtros removam todos
+              publicUrl = `https://${statusData.alias[0]}`;
+            }
+          } else if (state !== "READY") {
             console.warn(`Deploy finalizado com status de erro ou cancelado: ${state}`);
           }
         }
@@ -104,8 +90,7 @@ export async function deployToVercel(projectName: string, githubOwner: string, g
     }
   }
 
-  
-  // Retornamos logo a URL gerada (ficará acessível em breve).
+  // Retornamos logo a URL exata gerada
   return {
     deployId: result.id,
     url: publicUrl
