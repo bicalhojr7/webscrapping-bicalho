@@ -11,7 +11,7 @@ describe("LeadQueueRepository", () => {
     const tempDir = await mkdtemp(path.join(os.tmpdir(), "lead-queue-"));
     const repository = new LeadQueueRepository();
 
-    const firstPass = await repository.saveMany([
+    const firstPass = await repository.saveMany("test-user-id", [
       {
         placeId: "abc",
         companyName: "Empresa A",
@@ -19,7 +19,7 @@ describe("LeadQueueRepository", () => {
       }
     ]);
 
-    const secondPass = await repository.saveMany([
+    const secondPass = await repository.saveMany("test-user-id", [
       {
         placeId: "abc",
         companyName: "Empresa A Atualizada",
@@ -40,7 +40,7 @@ describe("LeadQueueRepository", () => {
     const tempDir = await mkdtemp(path.join(os.tmpdir(), "lead-status-"));
     const repository = new LeadQueueRepository();
 
-    await repository.saveMany([
+    await repository.saveMany("test-user-id", [
       {
         placeId: "xyz",
         companyName: "Empresa B",
@@ -48,7 +48,7 @@ describe("LeadQueueRepository", () => {
       }
     ]);
 
-    const lead = await repository.updateStatus("xyz", "approved");
+    const lead = await repository.updateStatus("test-user-id", "xyz", "approved");
 
     expect(lead?.status).toBe("approved");
   });

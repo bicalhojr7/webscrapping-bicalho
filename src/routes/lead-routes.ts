@@ -57,6 +57,8 @@ export async function registerLeadRoutes(app: FastifyInstance): Promise<void> {
   app.get("/health", async () => ({ status: "ok" }));
 
   app.post("/api/leads/search", async (request, reply) => {
+    const userId = (request as any).user?.id;
+    if (!userId) return reply.code(401).send({ message: "Unauthorized" });
     const input = searchBodySchema.parse(request.body);
     const searchInput = {
       query: input.query,
@@ -93,7 +95,7 @@ export async function registerLeadRoutes(app: FastifyInstance): Promise<void> {
       };
     }
 
-    const savedLeads = await repository.saveMany(newLeads);
+    const savedLeads = await repository.saveMany(userId, newLeads);
 
     reply.code(201);
     return {
@@ -103,9 +105,11 @@ export async function registerLeadRoutes(app: FastifyInstance): Promise<void> {
     };
   });
 
-  app.get("/api/leads", async (request) => {
+  app.get("/api/leads", async (request: any, reply) => {
+    const userId = request.user?.id;
+    if (!userId) return reply.code(401).send({ error: "Unauthorized" });
     const query = listQuerySchema.parse(request.query);
-    const leads = await repository.list(query.status);
+    const leads = await repository.list(userId, query.status);
 
     return {
       total: leads.length,
@@ -114,9 +118,11 @@ export async function registerLeadRoutes(app: FastifyInstance): Promise<void> {
   });
 
   app.patch("/api/leads/:id/status", async (request, reply) => {
+    const userId = (request as any).user?.id;
+    if (!userId) return reply.code(401).send({ message: "Unauthorized" });
     const { id } = paramsSchema.parse(request.params);
     const body = updateBodySchema.parse(request.body);
-    const updated = await repository.updateStatus(id, body.status);
+    const updated = await repository.updateStatus(userId, id, body.status);
 
     if (!updated) {
       reply.code(404);
@@ -131,8 +137,10 @@ export async function registerLeadRoutes(app: FastifyInstance): Promise<void> {
   });
 
   app.get("/api/leads/export.xlsx", async (request, reply) => {
+    const userId = (request as any).user?.id;
+    if (!userId) return reply.code(401).send({ message: "Unauthorized" });
     const query = exportQuerySchema.parse(request.query);
-    const leads = await repository.list(query.status);
+    const leads = await repository.list(userId, query.status);
     const excelBuffer = buildLeadXlsx(leads);
 
     reply
@@ -143,7 +151,9 @@ export async function registerLeadRoutes(app: FastifyInstance): Promise<void> {
   });
 
   app.delete("/api/leads", async (request, reply) => {
-    await repository.clear();
+    const userId = (request as any).user?.id;
+    if (!userId) return reply.code(401).send({ message: "Unauthorized" });
+    await repository.clear(userId);
     reply.code(200);
     return {
       message: "Fila esvaziada com sucesso"
@@ -151,12 +161,14 @@ export async function registerLeadRoutes(app: FastifyInstance): Promise<void> {
   });
 
   app.post("/api/leads/:id/generate-site", async (request, reply) => {
+    const userId = (request as any).user?.id;
+    if (!userId) return reply.code(401).send({ message: "Unauthorized" });
     const { id } = paramsSchema.parse(request.params);
     const bodyArgs = request.body as any;
     const branding = bodyArgs?.branding || "";
 
     // Buscamos o Lead pelo ID para pegar os dados e injetar na geração
-    const leadsList = await repository.list();
+    const leadsList = await repository.list(userId);
     const targetLead = leadsList.find(l => l.id === id);
 
     const businessContext = `
@@ -190,7 +202,7 @@ DADOS OBRIGATÓRIOS DO NEGÓCIO (USE ESTES DADOS PARA CRIAR A COPY DO SITE, SUBS
       const outputDeploy = await deployToVercel(sanitizedProjectName, gData.owner, gData.repoName, gData.repoId);
 
       // Save the links to our DB
-      await repository.saveSiteData(id, {
+      await repository.saveSiteData(userId, id, {
         siteUrl: outputDeploy.url,
         githubUrl: gData.githubUrl,
         stitchProjectId: stitchResult.stitchProjectId,
@@ -212,6 +224,8 @@ DADOS OBRIGATÓRIOS DO NEGÓCIO (USE ESTES DADOS PARA CRIAR A COPY DO SITE, SUBS
 
   // ROTA MÁGICA: EDITA RE-USANDO O HISTÓRICO DO SITE NA API (ECONOMIZA TOKEN E TEMPO)
   app.post("/api/leads/:id/edit-site", async (request, reply) => {
+    const userId = (request as any).user?.id;
+    if (!userId) return reply.code(401).send({ message: "Unauthorized" });
     const { id } = paramsSchema.parse(request.params);
     const bodyArgs = request.body as any;
     const prompt = bodyArgs.prompt;
@@ -221,7 +235,7 @@ DADOS OBRIGATÓRIOS DO NEGÓCIO (USE ESTES DADOS PARA CRIAR A COPY DO SITE, SUBS
       return { message: "Prompt não fornecido para edição." };
     }
 
-    const leadsList = await repository.list();
+    const leadsList = await repository.list(userId);
     const targetLead = leadsList.find(l => l.id === id);
 
     if (!targetLead || !targetLead.stitchSessionId || !targetLead.stitchProjectId) {
@@ -267,6 +281,8 @@ DADOS OBRIGATÓRIOS DO NEGÓCIO (USE ESTES DADOS PARA CRIAR A COPY DO SITE, SUBS
 
   // ROTA PARA PUBLICAR HTML MANUAL (GERADO NO STITCH MANUAMENTE)
   app.post("/api/leads/:id/publish-manual", async (request, reply) => {
+    const userId = (request as any).user?.id;
+    if (!userId) return reply.code(401).send({ message: "Unauthorized" });
     const { id } = paramsSchema.parse(request.params);
     const bodyArgs = request.body as any;
     const html = bodyArgs.html;
@@ -276,7 +292,7 @@ DADOS OBRIGATÓRIOS DO NEGÓCIO (USE ESTES DADOS PARA CRIAR A COPY DO SITE, SUBS
       return { message: "Nenhum HTML fornecido." };
     }
 
-    const leadsList = await repository.list();
+    const leadsList = await repository.list(userId);
     const targetLead = leadsList.find(l => l.id === id);
 
     if (!targetLead) {
@@ -294,7 +310,7 @@ DADOS OBRIGATÓRIOS DO NEGÓCIO (USE ESTES DADOS PARA CRIAR A COPY DO SITE, SUBS
       const outputDeploy = await deployToVercel(sanitizedProjectName, gData.owner, gData.repoName, gData.repoId);
 
       // Save to persistence
-      await repository.saveSiteData(id, {
+      await repository.saveSiteData(userId, id, {
         siteUrl: outputDeploy.url,
         githubUrl: gData.githubUrl,
         // Since it's manual, we don't have stitch project IDs. Keep existing or pass undefined
@@ -316,9 +332,11 @@ DADOS OBRIGATÓRIOS DO NEGÓCIO (USE ESTES DADOS PARA CRIAR A COPY DO SITE, SUBS
 
   // ROTA PARA APAGAR SITE (GITHUB + VERCEL)
   app.delete("/api/leads/:id/site", async (request, reply) => {
+    const userId = (request as any).user?.id;
+    if (!userId) return reply.code(401).send({ message: "Unauthorized" });
     const { id } = paramsSchema.parse(request.params);
     
-    const leadsList = await repository.list();
+    const leadsList = await repository.list(userId);
     const targetLead = leadsList.find(l => l.id === id);
 
     if (!targetLead) {
@@ -350,7 +368,7 @@ DADOS OBRIGATÓRIOS DO NEGÓCIO (USE ESTES DADOS PARA CRIAR A COPY DO SITE, SUBS
 
     // 3. Atualiza banco limpando as credenciais de site
     try {
-       await repository.saveSiteData(id, {
+       await repository.saveSiteData(userId, id, {
         siteUrl: undefined,
         githubUrl: undefined,
         stitchProjectId: undefined,
@@ -367,6 +385,8 @@ DADOS OBRIGATÓRIOS DO NEGÓCIO (USE ESTES DADOS PARA CRIAR A COPY DO SITE, SUBS
   // ROTA: MODO AUTOMÁTICO — gera sites em massa (máx 10) via SSE
   // ──────────────────────────────────────────────────────────────────────────
   app.post("/api/leads/auto-generate", async (request, reply) => {
+    const userId = (request as any).user?.id;
+    if (!userId) return reply.code(401).send({ message: "Unauthorized" });
     const MAX_BATCH = 10;
 
     // A imagem customizada foi removida do fluxo em lote.
@@ -374,7 +394,7 @@ DADOS OBRIGATÓRIOS DO NEGÓCIO (USE ESTES DADOS PARA CRIAR A COPY DO SITE, SUBS
     const imageBuffers: Buffer[] = [];
 
     // Carrega fila e filtra sem site (sem websiteUri válido e sem site já gerado)
-    const allLeads = await repository.list();
+    const allLeads = await repository.list(userId);
     // Somente leads APROVADOS que ainda não têm site gerado entram no funil automático
     const noSiteLeads = allLeads.filter((lead) => {
       if (lead.status !== "approved") return false; // ✅ apenas aprovados
@@ -447,7 +467,7 @@ DADOS OBRIGATÓRIOS DO NEGÓCIO (USE ESTES DADOS PARA CRIAR A COPY DO SITE, SUBS
         const deploy = await deployToVercel(sanitizedName, gData.owner, gData.repoName, gData.repoId);
 
         // Persiste dados do site no lead
-        await repository.saveSiteData(lead.id, {
+        await repository.saveSiteData(userId, lead.id, {
           siteUrl: deploy.url,
           githubUrl: gData.githubUrl,
           stitchProjectId: stitchResult.stitchProjectId,
@@ -527,6 +547,8 @@ DADOS OBRIGATÓRIOS DO NEGÓCIO (USE ESTES DADOS PARA CRIAR A COPY DO SITE, SUBS
   // ROTA: Envia mensagem WhatsApp via Evolution API
   // ──────────────────────────────────────────────────────────────────────────
   app.post("/api/leads/:id/send-whatsapp", async (request, reply) => {
+    const userId = (request as any).user?.id;
+    if (!userId) return reply.code(401).send({ message: "Unauthorized" });
     const { id } = paramsSchema.parse(request.params);
     const body = request.body as { customMessage?: string; useCustomMessage?: boolean };
 
@@ -538,7 +560,7 @@ DADOS OBRIGATÓRIOS DO NEGÓCIO (USE ESTES DADOS PARA CRIAR A COPY DO SITE, SUBS
       };
     }
 
-    const leadsList = await repository.list();
+    const leadsList = await repository.list(userId);
     const lead = leadsList.find((l) => l.id === id);
 
     if (!lead) {

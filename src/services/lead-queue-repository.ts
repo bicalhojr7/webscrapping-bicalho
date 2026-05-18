@@ -2,8 +2,8 @@ import { createLeadRecord, type LeadCandidate, type LeadRecord, type LeadStatus 
 import { supabase } from "../config/supabase.js";
 
 export class LeadQueueRepository {
-  async list(status?: LeadStatus): Promise<LeadRecord[]> {
-    let query = supabase.from("leads").select("*").order("updated_at", { ascending: false });
+  async list(userId: string, status?: LeadStatus): Promise<LeadRecord[]> {
+    let query = supabase.from("leads").select("*").eq("user_id", userId).order("updated_at", { ascending: false });
 
     if (status) {
       query = query.eq("status", status);
@@ -19,18 +19,20 @@ export class LeadQueueRepository {
     return data.map(mapRowToLeadRecord);
   }
 
-  async saveMany(candidates: LeadCandidate[]): Promise<LeadRecord[]> {
+  async saveMany(userId: string, candidates: LeadCandidate[]): Promise<LeadRecord[]> {
     const records = candidates.map(candidate => {
       const record = createLeadRecord(candidate);
-      return mapLeadRecordToRow(record);
+      const row = mapLeadRecordToRow(record);
+      row.user_id = userId;
+      return row;
     });
 
     if (records.length === 0) return [];
 
-    // UPSERT directly based on place_id (unique constraint)
+    // UPSERT directly based on place_id, user_id (unique constraint)
     const { data, error } = await supabase
       .from("leads")
-      .upsert(records, { onConflict: "place_id" })
+      .upsert(records, { onConflict: "place_id, user_id" })
       .select();
 
     if (error) {
@@ -41,11 +43,12 @@ export class LeadQueueRepository {
     return (data || []).map(mapRowToLeadRecord);
   }
 
-  async updateStatus(id: string, status: LeadStatus): Promise<LeadRecord | null> {
+  async updateStatus(userId: string, id: string, status: LeadStatus): Promise<LeadRecord | null> {
     const { data, error } = await supabase
       .from("leads")
       .update({ status, updated_at: new Date().toISOString() })
       .eq("id", id)
+      .eq("user_id", userId)
       .select()
       .single();
 
@@ -57,7 +60,7 @@ export class LeadQueueRepository {
     return mapRowToLeadRecord(data);
   }
 
-  async saveSiteData(id: string, siteData: { siteUrl?: string | undefined; githubUrl?: string | undefined; stitchProjectId?: string | undefined; stitchSessionId?: string | undefined }): Promise<LeadRecord | null> {
+  async saveSiteData(userId: string, id: string, siteData: { siteUrl?: string | undefined; githubUrl?: string | undefined; stitchProjectId?: string | undefined; stitchSessionId?: string | undefined }): Promise<LeadRecord | null> {
     const updatePayload: any = {
       updated_at: new Date().toISOString()
     };
@@ -73,6 +76,7 @@ export class LeadQueueRepository {
       .from("leads")
       .update(updatePayload)
       .eq("id", id)
+      .eq("user_id", userId)
       .select()
       .single();
 
@@ -84,13 +88,13 @@ export class LeadQueueRepository {
     return mapRowToLeadRecord(data);
   }
 
-  async clear(): Promise<void> {
+  async clear(userId: string): Promise<void> {
     // In production we usually don't want to easily wipe the DB.
     // For now we will allow it via delete where id != null
     const { error } = await supabase
       .from("leads")
       .delete()
-      .neq("id", "0"); // deletes all rows
+      .eq("user_id", userId);
 
     if (error) {
       console.error("Error clearing leads from Supabase:", error);
