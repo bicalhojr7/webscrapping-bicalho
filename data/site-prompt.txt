@@ -9,20 +9,20 @@ Um único arquivo HTML com Tailwind CSS (via CDN) + JS vanilla inline.
 Idioma: exclusivamente PT-BR.
 
 ## SEÇÕES OBRIGATÓRIAS (nesta ordem)
-1. Nav fixo com logo, links âncora e botão WhatsApp
+1. Nav fixo com logo, links âncora e botão WhatsApp (oculto no mobile se houver CTA flutuante, para limpar espaço)
 2. Hero: H1 impactante (Super Headline) + subtítulo + CTA primário + imagem/visual
-3. Seção de dor/problema (3 cards)
-4. Serviços/Soluções (grid 3 colunas, ícones SVG inline)
-5. Diferenciais (2 colunas, foto + lista)
-6. Prova social (3 depoimentos com avatar, nome e avaliação 5 estrelas)
-7. FAQ (accordion com JavaScript funcional)
-8. CTA Final (banner de alta conversão para o WhatsApp)
+3. Seção de dor/problema (3 cards empilhados no mobile)
+4. Serviços/Soluções (grid 3 colunas, 1 coluna no mobile, ícones SVG inline)
+5. Diferenciais (2 colunas, 1 coluna no mobile, foto + lista)
+6. Prova social (3 depoimentos em slider ou empilhados no mobile, com avatar, nome e avaliação 5 estrelas)
+7. FAQ (accordion com JavaScript funcional para mobile)
+8. CTA Final (banner de alta conversão para o WhatsApp) + Botão flutuante do WhatsApp visível e sempre fixo no canto inferior direito (essencial para mobile)
 9. Footer completo
 
-## REGRAS TÉCNICAS E DE DESIGN (ALTO PADRÃO)
+## REGRAS TÉCNICAS E DE DESIGN (ALTO PADRÃO E OTIMIZAÇÃO MOBILE)
 - **Tailwind via CDN**: Sem build, usar `<script src="https://cdn.tailwindcss.com"></script>`.
-- **Responsivo**: mobile-first obrigatório. Use as classes Tailwind (sm:, md:, lg:).
-- **Menu Hamburger**: Deve ser funcional em JS para mobile.
+- **Foco Absoluto em Mobile (Mobile-First)**: O site será acessado primariamente por celulares. O design DEVE ser pensado para a tela pequena antes do desktop. Áreas de toque (botões, links) devem ser fáceis para o polegar (mínimo h-12 / 48px). Fontes devem ser extremamente legíveis e sem necessidade de zoom no mobile. Evite textos colados nas bordas, usando sempre paddings laterais (px-4 ou px-6) em todas as seções.
+- **Menu Hamburger**: Deve ser funcional em JS para mobile, com uma transição suave e que ocupe a tela para facilitar a navegação por toque.
 - **Scroll Suave**: Adicione `scroll-behavior: smooth` no HTML.
 - **Animações (UX/UI)**: Adicione fade-in via JavaScript (Intersection Observer) para os elementos entrarem suavemente na viewport. Adicione classes de hover nos botões e cards (`hover:scale-105`, `transition-all duration-300`).
 - **Imagens**: Use o Unsplash com URLs no formato seguro: `https://images.unsplash.com/photo-{ID}?w=800&q=80`. Escolha IDs coerentes com o nicho (ou keywords como `https://source.unsplash.com/800x600/?office`). Use SEMPRE `object-cover` nas imagens com altura fixa (ex: `h-64`) e `overflow-hidden`.

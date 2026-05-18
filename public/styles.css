@@ -326,8 +326,73 @@ dialog p { font-size: 14px; color: var(--fg-secondary); line-height: 1.6; }
 }
 
 @media (max-width: 640px) {
-  .board, .rail { padding: var(--sp-4); }
-  .metrics { grid-template-columns: 1fr; }
-  .actions, .ticket__actions { flex-direction: column; }
-  .button { width: 100%; }
+  body { padding-bottom: 70px; } /* Espaço para a bottom nav */
+  .shell { display: block; }
+  .rail { padding: var(--sp-4); border-bottom: none; }
+  
+  /* Bottom Navigation tipo App nativo */
+  .rail__nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    flex-direction: row;
+    justify-content: space-around;
+    background: rgba(24, 24, 27, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border-strong);
+    padding: var(--sp-2) var(--sp-2) calc(var(--sp-2) + env(safe-area-inset-bottom));
+    z-index: 9999;
+    gap: 0;
+  }
+  .nav__link {
+    flex-direction: column;
+    gap: 4px;
+    font-size: 11px;
+    padding: var(--sp-2);
+    text-align: center;
+    border: none;
+    background: transparent !important;
+    justify-content: center;
+    width: 50%;
+  }
+  .nav__link.active {
+    box-shadow: none;
+    color: var(--accent);
+  }
+
+  .board { padding: var(--sp-4); }
+  .metrics { grid-template-columns: repeat(2, 1fr); gap: var(--sp-3); }
+  .metric { padding: var(--sp-3); }
+  .metric__value { font-size: 24px; }
+  
+  .search-panel { padding: var(--sp-4); }
+  .actions { flex-direction: row; flex-wrap: wrap; }
+  .actions .button { flex: 1; min-width: calc(50% - var(--sp-3)); }
+  #btn-clear { min-width: 100%; margin-left: 0 !important; }
+  
+  .ticket__actions { flex-direction: column; }
+  .ticket__actions .button { width: 100%; }
+  
+  /* Touch Targets e inputs (16px evita o zoom automático do iOS) */
+  .button { min-height: 48px; font-size: 14px; }
+  .field input, .field textarea { min-height: 48px; font-size: 16px; }
+  
+  .tickets { padding: var(--sp-4); margin-top: var(--sp-4); border-radius: var(--radius-lg); }
+  .tickets__header { flex-direction: column; align-items: flex-start; gap: var(--sp-4); }
+  .tickets__header > div:last-child { width: 100%; flex-wrap: wrap; }
+  #local-search { width: 100% !important; min-height: 44px; font-size: 16px !important; }
+  #btn-auto-generate { width: 100%; min-height: 48px; margin-top: 8px; }
+  
+  /* Dialogs estilo bottom sheet modal do iOS */
+  dialog {
+    margin: auto 0 0 0;
+    width: 100vw;
+    max-width: 100vw;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    border: none;
+    border-top: 1px solid var(--border-strong);
+    padding: var(--sp-5) var(--sp-4) calc(var(--sp-5) + env(safe-area-inset-bottom));
+  }
 }
