@@ -24,6 +24,7 @@ async function callStitchJsonRpc(method: string, internalMethod: string, params:
   let attempt = 0;
   
   while (attempt < MAX_RETRIES) {
+    console.log(`[Stitch API] Enviando requisição JSON-RPC (Tentativa ${attempt + 1}/${MAX_RETRIES}) - Método: ${internalMethod}`);
     try {
       const response = await fetch(STITCH_URL, {
         method: "POST",
@@ -31,8 +32,11 @@ async function callStitchJsonRpc(method: string, internalMethod: string, params:
           "X-Goog-Api-Key": requireStitchApiKey(),
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(120000) // 2 minutos de limite
       });
+
+      console.log(`[Stitch API] Resposta recebida: HTTP ${response.status}`);
 
       if (!response.ok) {
         const errText = await response.text();

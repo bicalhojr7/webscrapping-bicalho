@@ -542,11 +542,17 @@ if (generateForm) {
     feedback.style.color = "var(--fg-secondary)";
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 130000); // 2 minutos e 10s (pra dar tempo do backend retornar o 504)
+
       const res = await fetch(`/api/leads/${encodeURIComponent(leadId)}/generate-site`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ branding: brandingText })
+        body: JSON.stringify({ branding: brandingText }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       const payload = await res.json();
       if (!res.ok) {
@@ -563,7 +569,11 @@ if (generateForm) {
       // Atualiza a listagem de leads para exibir os botões novos depois de 1.5s
       setTimeout(() => loadLeads(), 1500);
     } catch (err) {
-      feedback.textContent = "Falha: " + err.message;
+      if (err.name === 'AbortError') {
+         feedback.textContent = "Falha: O servidor demorou muito para responder (Timeout da IA).";
+      } else {
+         feedback.textContent = "Falha: " + err.message;
+      }
       feedback.style.color = "var(--red)";
     } finally {
       submitBtn.disabled = false;
