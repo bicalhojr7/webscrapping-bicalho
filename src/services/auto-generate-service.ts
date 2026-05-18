@@ -298,6 +298,7 @@ ${profile.copyTone}
 - Máx width de containers: max-w-6xl mx-auto com padding lateral
 - Fontes: Google Fonts (Inter ou similar sem serifa)
 - Scrolling suave e micro-animações de entrada (opacity + transform)
+- PROIBIDO O USO DE IFRAMES (ex: Google Maps, YouTube). Eles causam erro de cross-origin e quebram a página. Não adicione mapas.
 - PROIBIDO HTML sem estilo, sem layout completo ou sem conteúdo real
 - ENTREGUE SOMENTE O CÓDIGO HTML PURO. Sem comentários introdutórios, sem markdown, sem texto fora do HTML.
 `.trim();

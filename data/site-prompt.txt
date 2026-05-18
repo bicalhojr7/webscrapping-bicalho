@@ -34,4 +34,5 @@ Idioma: exclusivamente PT-BR.
 - Palavras em inglês na interface (Contact, About, Home). TUDO DEVE SER EM PORTUGUÊS (PT-BR).
 - Imagens sem dimensão fixa que quebram o layout.
 - Layout esparso sem estar contido num `max-w-7xl mx-auto`.
+- PROIBIDO O USO DE IFRAMES (ex: Google Maps, YouTube). Eles causam erro de cross-origin e quebram a página. Não adicione mapas.
 - Entregar apenas texto descritivo. O SEU ÚNICO RETORNO DEVE SER O CÓDIGO HTML COMPLETO.

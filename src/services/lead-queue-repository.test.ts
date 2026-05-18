@@ -9,7 +9,7 @@ import { LeadQueueRepository } from "./lead-queue-repository.js";
 describe("LeadQueueRepository", () => {
   it("deduplicates leads by place id", async () => {
     const tempDir = await mkdtemp(path.join(os.tmpdir(), "lead-queue-"));
-    const repository = new LeadQueueRepository(path.join(tempDir, "leads.json"));
+    const repository = new LeadQueueRepository();
 
     const firstPass = await repository.saveMany([
       {
@@ -38,7 +38,7 @@ describe("LeadQueueRepository", () => {
 
   it("updates a lead status", async () => {
     const tempDir = await mkdtemp(path.join(os.tmpdir(), "lead-status-"));
-    const repository = new LeadQueueRepository(path.join(tempDir, "leads.json"));
+    const repository = new LeadQueueRepository();
 
     await repository.saveMany([
       {

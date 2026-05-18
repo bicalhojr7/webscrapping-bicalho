@@ -35,6 +35,21 @@ const exportQuerySchema = z.object({
   status: z.enum(leadStatuses).optional()
 });
 
+function buildProjectName(companyName: string, id: string): string {
+  const base = (companyName || id)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // remove acentos
+    .replace(/[^a-z0-9-]/g, "-")     // troca espaços/especiais por hífen
+    .replace(/-+/g, "-")             // remove hífens duplos
+    .replace(/^-|-$/g, "");          // remove hífen do começo ou fim
+    
+  const suffix = id.replace(/[^a-z0-9]/gi, "").substring(0, 5).toLowerCase();
+  
+  // Limita o base a 44 chars para garantir max de 50 somando o "-suffix"
+  return `${base.substring(0, 44).replace(/-$/, "")}-${suffix}`;
+}
+
 export async function registerLeadRoutes(app: FastifyInstance): Promise<void> {
   const placesClient = new GooglePlacesClient();
   const repository = new LeadQueueRepository();
@@ -165,15 +180,9 @@ DADOS OBRIGATÓRIOS DO NEGÓCIO (USE ESTES DADOS PARA CRIAR A COPY DO SITE, SUBS
     const generatedCode = stitchResult.html;
 
     
-    // Sanitização profunda: Removemos tudo que não for Alfanumérico e convertemos pra minúsculo
+    // Sanitização profunda com hash determinístico
     const rawProjectName = targetLead ? targetLead.companyName : id;
-    const sanitizedProjectName = rawProjectName
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "") // remove acentos
-      .replace(/[^a-z0-9-]/g, "-")     // troca espaços/especiais por hífen
-      .replace(/-+/g, "-")             // remove hífens duplos
-      .replace(/^-|-$/g, "");          // remove hífen do começo ou fim
+    const sanitizedProjectName = buildProjectName(rawProjectName, id);
 
     // Connect to versioning and deploy usa o sanitizado
     try {
@@ -232,24 +241,20 @@ DADOS OBRIGATÓRIOS DO NEGÓCIO (USE ESTES DADOS PARA CRIAR A COPY DO SITE, SUBS
 
     const generatedCode = editResult.html;
 
-    const rawProjectName = targetLead.companyName;
-    const sanitizedProjectName = rawProjectName
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-z0-9-]/g, "-")
-        .replace(/-+/g, "-")
-        .replace(/^-|-$/g, "");
+    const sanitizedProjectName = buildProjectName(targetLead.companyName, id);
     
     let githubRepoUrl = "";
     try {
       // Nosso client de Github já está esmagando o index.html antigo perfeitamente!
       const gData = await createAndPushToGithub(sanitizedProjectName, generatedCode);
       githubRepoUrl = gData.githubUrl;
+      
+      // Força a Vercel a puxar o novo commit imediatamente (ignorando ausência de webhooks)
+      await deployToVercel(sanitizedProjectName, gData.owner, gData.repoName, gData.repoId);
     } catch (e) {
-      request.log.error({ err: e }, "Erro ao atualizar o Github na Edição");
+      request.log.error({ err: e }, "Erro ao atualizar Github/Vercel na Edição");
       reply.code(500);
-      return { message: "Falha ao enviar edição para o Github." };
+      return { message: "Falha ao enviar edição para o Github ou Vercel." };
     }
 
     return {
@@ -279,14 +284,7 @@ DADOS OBRIGATÓRIOS DO NEGÓCIO (USE ESTES DADOS PARA CRIAR A COPY DO SITE, SUBS
       return { message: "Lead não encontrado." };
     }
 
-    const rawProjectName = targetLead.companyName;
-    const sanitizedProjectName = rawProjectName
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-z0-9-]/g, "-")
-        .replace(/-+/g, "-")
-        .replace(/^-|-$/g, "");
+    const sanitizedProjectName = buildProjectName(targetLead.companyName, id);
     
     try {
       // Create/Update Github Repo
@@ -333,14 +331,7 @@ DADOS OBRIGATÓRIOS DO NEGÓCIO (USE ESTES DADOS PARA CRIAR A COPY DO SITE, SUBS
       return { message: "Lead não possui site gerado para excluir." };
     }
 
-    const rawProjectName = targetLead.companyName;
-    const sanitizedProjectName = rawProjectName
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-z0-9-]/g, "-")
-        .replace(/-+/g, "-")
-        .replace(/^-|-$/g, "");
+    const sanitizedProjectName = buildProjectName(targetLead.companyName, id);
 
     try {
       // 1. Deleta do Github
@@ -446,16 +437,10 @@ DADOS OBRIGATÓRIOS DO NEGÓCIO (USE ESTES DADOS PARA CRIAR A COPY DO SITE, SUBS
         const autoPrompt = buildAutoPrompt(lead, hasCustomImage);
 
         // Gera o site via Stitch
-        const stitchResult = await generateSite(imageBuffers, autoPrompt);
+        const stitchResult = await generateSite("", autoPrompt);
 
-        // Sanitiza nome do projeto
-        const sanitizedName = lead.companyName
-          .toLowerCase()
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .replace(/[^a-z0-9-]/g, "-")
-          .replace(/-+/g, "-")
-          .replace(/^-|-$/g, "");
+        // Sanitiza nome do projeto com hash determinístico
+        const sanitizedName = buildProjectName(lead.companyName, lead.id);
 
         // Deploy GitHub + Vercel
         const gData = await createAndPushToGithub(sanitizedName, stitchResult.html);
