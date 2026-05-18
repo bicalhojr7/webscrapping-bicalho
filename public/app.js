@@ -66,6 +66,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         appShell.style.display = "block";
         loadLeads().catch(console.error); // Carrega os leads após o login
     });
+
+    const btnLogout = document.getElementById("btn-logout");
+    if (btnLogout) {
+        btnLogout.addEventListener("click", async () => {
+            if (supabase) await supabase.auth.signOut();
+            appShell.style.display = "none";
+            loginOverlay.style.display = "flex";
+            document.getElementById("login-password").value = "";
+        });
+    }
 });
 
 const elements = {
