@@ -157,7 +157,7 @@ function createLeadCard(lead) {
   const phone = fragment.querySelector(".ticket__phone");
   const meta = fragment.querySelector(".ticket__meta");
   const mapsContainer = fragment.querySelector(".maps-link-container");
-  const buttons = fragment.querySelectorAll("[data-status], [data-generate], [data-manual], .edit-site-btn, .delete-site-btn");
+  const buttons = fragment.querySelectorAll("[data-status], [data-generate], .edit-site-btn, .delete-site-btn");
 
   let websiteWarning = '';
   if (isFakeWebsite(lead.websiteUri)) {
