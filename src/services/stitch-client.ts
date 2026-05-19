@@ -117,8 +117,7 @@ OBRIGATÓRIO: NÃO crie documentações de design system ou relatórios textuais
     // 2. Acionar geração bruta (com imagens engastadas em MD)
     const generateRes = await callStitchJsonRpc("tools/call", "generate_screen_from_text", {
       projectId: finalProjectId,
-      prompt: fullPrompt,
-      modelId: "GEMINI_3_FLASH" // Ou Deixe vazio pro padrão
+      prompt: fullPrompt
     });
 
     const resultTxt = generateRes.result?.content?.[0]?.text;
