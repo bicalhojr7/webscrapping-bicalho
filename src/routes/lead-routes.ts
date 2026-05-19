@@ -481,18 +481,7 @@ DADOS OBRIGATÓRIOS DO NEGÓCIO (USE ESTES DADOS PARA CRIAR A COPY DO SITE, SUBS
         let waError = "";
         if (isEvolutionConfigured()) {
           try {
-            const waMsg = [
-              `Fala ${lead.companyName}, tudo bem?`,
-              ``,
-              `VOCÊ GANHOU UMA PRÉVIA DO SEU SITE GRÁTIS 🎁`,
-              ``,
-              `Eu tava dando uma olhada aqui nas empresas da região e vi que o trabalho de vocês é muito bom, mas o posicionamento atual na internet não reflete o valor do serviço.`,
-              ``,
-              `Como a gente trabalha com design de alta conversão, tomei a liberdade de construir o visual de como ficaria um site Premium de vocês focado em trazer contatos pro WhatsApp.`,
-              ``,
-              `Dá uma olhada em como ficou:`,
-              deploy.url
-            ].join("\n");
+            const waMsg = "Olá, tudo joia ?";
 
             await sendWhatsAppText({ number: lead.phoneNumber, text: waMsg, delayMs: 1500 });
             waSent = true;
@@ -579,19 +568,7 @@ DADOS OBRIGATÓRIOS DO NEGÓCIO (USE ESTES DADOS PARA CRIAR A COPY DO SITE, SUBS
     if (body.useCustomMessage && body.customMessage?.trim()) {
       messageText = body.customMessage.trim();
     } else {
-      const siteLink = lead.siteUrl ?? "[Site sendo preparado]";
-      messageText = [
-        `Fala ${lead.companyName}, tudo bem?`,
-        ``,
-        `VOCÊ GANHOU UMA PRÉVIA DO SEU SITE GRÁTIS 🎁`,
-        ``,
-        `Eu tava dando uma olhada aqui nas empresas da região e vi que o trabalho de vocês é muito bom, mas o posicionamento atual na internet não reflete o valor do serviço.`,
-        ``,
-        `Como a gente trabalha com design de alta conversão, tomei a liberdade de construir o visual de como ficaria um site Premium de vocês focado em trazer contatos pro WhatsApp.`,
-        ``,
-        `Dá uma olhada em como ficou:`,
-        siteLink
-      ].join("\n");
+      messageText = "Olá, tudo joia ?";
     }
 
     try {
