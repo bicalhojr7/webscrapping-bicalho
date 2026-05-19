@@ -535,7 +535,7 @@ if (generateForm) {
     feedback.style.color = "var(--fg-secondary)";
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 130000); // 2 minutos e 10s
+    const timeoutId = setTimeout(() => controller.abort(), 310000); // 5 minutos e 10s
 
     const onAbortClick = () => {
        controller.abort();
