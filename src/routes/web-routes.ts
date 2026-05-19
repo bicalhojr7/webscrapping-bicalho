@@ -9,8 +9,8 @@ const publicDir = path.resolve(process.cwd(), "public");
 
 const staticFiles = new Map<string, { fileName: string; contentType: string }>([
   ["/", { fileName: "index.html", contentType: "text/html; charset=utf-8" }],
-  ["/assets/app.js", { fileName: "app.js", contentType: "application/javascript; charset=utf-8" }],
-  ["/assets/styles.css", { fileName: "styles.css", contentType: "text/css; charset=utf-8" }]
+  ["/app.js", { fileName: "app.js", contentType: "application/javascript; charset=utf-8" }],
+  ["/styles.css", { fileName: "styles.css", contentType: "text/css; charset=utf-8" }]
 ]);
 
 export async function registerWebRoutes(app: FastifyInstance): Promise<void> {
