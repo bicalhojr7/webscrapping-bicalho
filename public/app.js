@@ -157,7 +157,7 @@ function createLeadCard(lead) {
   const phone = fragment.querySelector(".ticket__phone");
   const meta = fragment.querySelector(".ticket__meta");
   const mapsContainer = fragment.querySelector(".maps-link-container");
-  const buttons = fragment.querySelectorAll("[data-status], [data-generate], .edit-site-btn, .delete-site-btn");
+  const buttons = fragment.querySelectorAll("[data-status], [data-generate], [data-manual], .edit-site-btn, .delete-site-btn");
 
   let websiteWarning = '';
   if (isFakeWebsite(lead.websiteUri)) {
@@ -515,8 +515,6 @@ loadLeads().catch((error) => {
 const generateForm = document.getElementById("generate-form");
 
 if (generateForm) {
-
-
   generateForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const leadId = document.getElementById("generate-lead-id").value;
@@ -531,11 +529,11 @@ if (generateForm) {
     closeBtn.style.display = "none";
     abortBtn.style.display = "block";
     
-    feedback.innerHTML = `Gerando site... Isso pode levar 1–3 min.`;
+    feedback.innerHTML = `Fase 1/2: Solicitando criação do código à IA (Stitch)...`;
     feedback.style.color = "var(--fg-secondary)";
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 310000); // 5 minutos e 10s
+    const timeoutId = setTimeout(() => controller.abort(), 310000); // 5 min
 
     const onAbortClick = () => {
        controller.abort();
@@ -543,26 +541,48 @@ if (generateForm) {
     abortBtn.addEventListener("click", onAbortClick, { once: true });
 
     try {
-      const res = await fetch(`/api/leads/${encodeURIComponent(leadId)}/generate-site`, {
+      // 1. Chamar endpoint generate-code (Fase 1)
+      const resCode = await fetch(`/api/leads/${encodeURIComponent(leadId)}/generate-code`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ branding: brandingText }),
         signal: controller.signal
       });
 
+      if (!resCode.ok) {
+        const payload = await resCode.json();
+        throw new Error(payload.message || "Erro na geração do código com Stitch AI.");
+      }
+
+      const codeData = await resCode.json();
+      
+      // 2. Chamar endpoint publish-manual (Fase 2)
+      feedback.innerHTML = `Fase 2/2: Código gerado! Publicando no GitHub e configurando deploy na Vercel...`;
+      
+      const resPublish = await fetch(`/api/leads/${encodeURIComponent(leadId)}/publish-manual`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          html: codeData.html,
+          stitchProjectId: codeData.stitchProjectId,
+          stitchSessionId: codeData.stitchSessionId
+        }),
+        signal: controller.signal
+      });
+
       clearTimeout(timeoutId);
       abortBtn.removeEventListener("click", onAbortClick);
 
-      const payload = await res.json();
-      if (!res.ok) {
-        throw new Error(payload.message || "Erro desconhecido ao gerar site.");
+      const publishData = await resPublish.json();
+      if (!resPublish.ok) {
+        throw new Error(publishData.message || "Erro na publicação do site.");
       }
 
       feedback.style.color = "var(--green)";
       feedback.innerHTML = `
-        <strong>Site publicado.</strong><br/>
-        <a href="${payload.deployUrl}" target="_blank" style="color:var(--accent)">${payload.deployUrl}</a><br/>
-        <a href="${payload.githubUrl}" target="_blank" style="color:var(--fg-tertiary)">${payload.githubUrl}</a>
+        <strong>Site publicado com sucesso!</strong><br/>
+        <a href="${publishData.deployUrl}" target="_blank" style="color:var(--accent)">${publishData.deployUrl}</a><br/>
+        <a href="${publishData.githubUrl}" target="_blank" style="color:var(--fg-tertiary)">${publishData.githubUrl}</a>
       `;
 
       setTimeout(() => loadLeads(), 1500);
@@ -591,26 +611,45 @@ if (generateForm) {
 
       submitBtn.disabled = true;
       submitBtn.textContent = "Aplicando…";
-      feedback.textContent = `Aplicando: "${prompt}". Aguarde (~2 min).`;
+      feedback.textContent = `Fase 1/2: Enviando alteração à IA (Stitch)...`;
       feedback.style.color = "var(--fg-secondary)";
 
       try {
-        const res = await fetch(`/api/leads/${encodeURIComponent(leadId)}/edit-site`, {
+        // 1. Chamar endpoint edit-code (Fase 1)
+        const resCode = await fetch(`/api/leads/${encodeURIComponent(leadId)}/edit-code`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ prompt }),
         });
 
-        const payload = await res.json();
-        if (!res.ok) {
-          throw new Error(payload.message || "Erro desconhecido na edição do site.");
+        const codeData = await resCode.json();
+        if (!resCode.ok) {
+          throw new Error(codeData.message || "Erro na edição do código com Stitch AI.");
+        }
+
+        // 2. Chamar endpoint publish-manual (Fase 2)
+        feedback.textContent = `Fase 2/2: Código alterado! Atualizando deploy na Vercel...`;
+        
+        const resPublish = await fetch(`/api/leads/${encodeURIComponent(leadId)}/publish-manual`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            html: codeData.html
+          }),
+        });
+
+        const publishData = await resPublish.json();
+        if (!resPublish.ok) {
+          throw new Error(publishData.message || "Erro na publicação do site editado.");
         }
 
         feedback.style.color = "var(--green)";
         feedback.innerHTML = `
-          <strong>${payload.message}</strong><br/>
-          <a href="${payload.deployUrl}" target="_blank" style="color:var(--accent)">Abrir site</a>
+          <strong>Alteração aplicada!</strong><br/>
+          <a href="${publishData.deployUrl}" target="_blank" style="color:var(--accent)">Abrir site</a>
         `;
+        
+        setTimeout(() => loadLeads(), 1500);
       } catch (err) {
         feedback.textContent = "Falha: " + err.message;
         feedback.style.color = "var(--red)";
@@ -623,10 +662,67 @@ if (generateForm) {
 
   const manualForm = document.getElementById("manual-form");
   if (manualForm) {
+    const manualDropzone = document.getElementById("manual-dropzone");
+    const manualFile = document.getElementById("manual-file");
+    const manualFileName = document.getElementById("manual-file-name");
+    const manualHtml = document.getElementById("manual-html");
+    const manualSubmit = document.getElementById("manual-submit");
+
+    const checkSubmitState = () => {
+      manualSubmit.disabled = !manualHtml.value.trim();
+    };
+
+    manualHtml.addEventListener("input", checkSubmitState);
+
+    // Clique na dropzone dispara o input de arquivo
+    manualDropzone.addEventListener("click", () => {
+      manualFile.click();
+    });
+
+    // Ao arrastar arquivo sobre a dropzone
+    manualDropzone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      manualDropzone.style.background = "rgba(139, 92, 246, 0.08)";
+      manualDropzone.style.borderColor = "var(--accent)";
+    });
+
+    manualDropzone.addEventListener("dragleave", () => {
+      manualDropzone.style.background = "rgba(255, 255, 255, 0.01)";
+      manualDropzone.style.borderColor = "var(--border-strong)";
+    });
+
+    const processFile = (file) => {
+      if (!file) return;
+      if (!file.name.endsWith(".html")) {
+        alert("Por favor, selecione apenas arquivos .html");
+        return;
+      }
+      manualFileName.textContent = `Selecionado: ${file.name}`;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        manualHtml.value = e.target.result;
+        checkSubmitState();
+      };
+      reader.readAsText(file);
+    };
+
+    manualDropzone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      manualDropzone.style.background = "rgba(255, 255, 255, 0.01)";
+      manualDropzone.style.borderColor = "var(--border-strong)";
+      const file = e.dataTransfer.files[0];
+      processFile(file);
+    });
+
+    manualFile.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      processFile(file);
+    });
+
     manualForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const leadId = document.getElementById("manual-lead-id").value;
-      const html = document.getElementById("manual-html").value;
+      const html = manualHtml.value;
       const feedback = document.getElementById("manual-feedback");
       const submitBtn = document.getElementById("manual-submit");
 
@@ -662,7 +758,7 @@ if (generateForm) {
         feedback.style.color = "var(--red)";
       } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = "Publicar";
+        submitBtn.textContent = "Publicar Site";
       }
     });
   }

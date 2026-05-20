@@ -174,6 +174,7 @@ Vê se faz sentido pro momento de vocês dar essa evoluída. Se fizer, a gente b
           <div class="ticket__site_links"></div>
           <div class="ticket__actions">
             <button class="button button--primary" data-generate="true" type="button">Gerar Site</button>
+            <button class="button button--ghost" data-manual="true" type="button">Subir HTML</button>
             <span class="whatsapp-link-container"></span>
             <span class="maps-link-container"></span>
             <button class="button button--approve" data-status="approved" type="button">Aprovar</button>
@@ -228,7 +229,42 @@ Vê se faz sentido pro momento de vocês dar essa evoluída. Se fizer, a gente b
       </form>
     </dialog>
 
+    <!-- Dialog: Publicar HTML Manual -->
+    <dialog id="manual-dialog" style="max-width: 520px; width: 90%;">
+      <h3>Publicar HTML Manual — <span id="manual-lead-name"></span></h3>
+      <p>Envie o código HTML já gerado em outra plataforma. Ele será versionado no GitHub e publicado diretamente na Vercel.</p>
+      
+      <form id="manual-form">
+        <input type="hidden" id="manual-lead-id">
+        
+        <!-- Área de Drag & Drop para arquivo HTML -->
+        <div id="manual-dropzone" style="margin-top: 16px; border: 2px dashed var(--border-strong); border-radius: var(--radius-lg); padding: 24px; text-align: center; cursor: pointer; background: rgba(255, 255, 255, 0.01); transition: all 0.2s ease;">
+          <svg style="width: 32px; height: 32px; color: var(--accent); margin-bottom: 8px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+          </svg>
+          <p style="font-size: 13px; font-weight: 500; margin: 0; color: var(--fg);">Arraste o arquivo .html ou <span style="color: var(--accent); text-decoration: underline;">clique para navegar</span></p>
+          <span id="manual-file-name" style="font-size: 12px; color: var(--green); display: block; margin-top: 6px; font-weight: 600;"></span>
+          <input type="file" id="manual-file" accept=".html" style="display: none;">
+        </div>
 
+        <div style="text-align: center; margin: 12px 0; font-size: 12px; color: var(--fg-tertiary); position: relative;">
+          <span style="background: var(--surface); padding: 0 8px; z-index: 1; position: relative;">OU</span>
+          <div style="position: absolute; top: 50%; left: 0; right: 0; border-top: 1px solid var(--border); z-index: 0;"></div>
+        </div>
+
+        <label class="field">
+          <span>Cole o Código HTML</span>
+          <textarea id="manual-html" rows="5" placeholder="<!-- Cole o código HTML completo aqui (começando com <!DOCTYPE html> ou <html...) -->" style="width:100%; resize:vertical; font-family: monospace; font-size: 12px;"></textarea>
+        </label>
+        
+        <p id="manual-feedback" class="feedback" style="margin-top: 8px;"></p>
+
+        <div class="actions" style="margin-top: 16px; justify-content: flex-end;">
+          <button type="button" class="button button--ghost" onclick="document.getElementById('manual-dialog').close()">Cancelar</button>
+          <button type="submit" class="button button--primary" id="manual-submit" disabled>Publicar Site</button>
+        </div>
+      </form>
+    </dialog>
 
     <!-- Dialog: Modo Automático -->
     <dialog id="auto-generate-dialog" style="max-width: 560px; width: 90%;">

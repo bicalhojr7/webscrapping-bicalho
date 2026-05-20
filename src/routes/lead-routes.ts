@@ -183,10 +183,14 @@ DADOS OBRIGATÓRIOS DO NEGÓCIO (USE ESTES DADOS PARA CRIAR A COPY DO SITE, SUBS
     let stitchResult: { html: string; stitchProjectId: string; stitchSessionId: string };
     try {
       stitchResult = await generateSite(branding, businessContext);
-    } catch (error) {
+    } catch (error: any) {
+      console.error("=== ERRO NA GERAÇÃO DO STITCH ===");
+      console.error(error.message);
+      console.error(error.stack);
+      console.error("=================================");
       request.log.error({ err: error }, "Erro na geração do site pelo Stitch");
       reply.code(500);
-      return { message: "Falha ao gerar código via Stitch AI." };
+      return { message: `Falha ao gerar código via Stitch AI. Detalhe: ${error.message}` };
     }
 
     const generatedCode = stitchResult.html;
@@ -219,6 +223,40 @@ DADOS OBRIGATÓRIOS DO NEGÓCIO (USE ESTES DADOS PARA CRIAR A COPY DO SITE, SUBS
        request.log.error({ err: error }, "Erro no fluxo Github/Vercel");
        reply.code(500);
        return { message: "Site gerado ("+id+"), mas ocorreu erro no deploy." };
+    }
+  });
+
+  // ROTA: APENAS GERAR CÓDIGO VIA STITCH (EVITA TIMEOUT NO VERCEL)
+  app.post("/api/leads/:id/generate-code", async (request, reply) => {
+    const userId = (request as any).user?.id;
+    if (!userId) return reply.code(401).send({ message: "Unauthorized" });
+    const { id } = paramsSchema.parse(request.params);
+    const bodyArgs = request.body as any;
+    const branding = bodyArgs?.branding || "";
+
+    const leadsList = await repository.list(userId);
+    const targetLead = leadsList.find(l => l.id === id);
+
+    const businessContext = `
+DADOS OBRIGATÓRIOS DO NEGÓCIO (USE ESTES DADOS PARA CRIAR A COPY DO SITE, SUBSTITUINDO QUALQUER EXEMPLO):
+- Nome Oficial do Negócio: ${targetLead?.companyName || "Empresa Especializada"}
+- Especialidade: Deduzida a partir do nome da empresa e do branding.
+- Meta de Conversão: Fazer o cliente entrar em contato para agendar ou pedir orçamento.
+- Tom de Voz da Copy: Altamente profissional, persuasivo, autoridade, luxo/premium.
+    `.trim();
+
+    try {
+      const stitchResult = await generateSite(branding, businessContext);
+      return {
+        success: true,
+        html: stitchResult.html,
+        stitchProjectId: stitchResult.stitchProjectId,
+        stitchSessionId: stitchResult.stitchSessionId
+      };
+    } catch (error: any) {
+      request.log.error({ err: error }, "Erro no generate-code");
+      reply.code(500);
+      return { message: `Falha ao gerar código via Stitch AI. Detalhe: ${error.message}` };
     }
   });
 
@@ -279,13 +317,50 @@ DADOS OBRIGATÓRIOS DO NEGÓCIO (USE ESTES DADOS PARA CRIAR A COPY DO SITE, SUBS
     };
   });
 
-  // ROTA PARA PUBLICAR HTML MANUAL (GERADO NO STITCH MANUAMENTE)
+  // ROTA: APENAS EDITAR CÓDIGO VIA STITCH (EVITA TIMEOUT NO VERCEL)
+  app.post("/api/leads/:id/edit-code", async (request, reply) => {
+    const userId = (request as any).user?.id;
+    if (!userId) return reply.code(401).send({ message: "Unauthorized" });
+    const { id } = paramsSchema.parse(request.params);
+    const bodyArgs = request.body as any;
+    const prompt = bodyArgs.prompt;
+
+    if (!prompt) {
+      reply.code(400);
+      return { message: "Prompt não fornecido para edição." };
+    }
+
+    const leadsList = await repository.list(userId);
+    const targetLead = leadsList.find(l => l.id === id);
+
+    if (!targetLead || !targetLead.stitchSessionId || !targetLead.stitchProjectId) {
+      reply.code(404);
+      return { message: "Site anterior não encontrado para esta lead (Gere o site primeiro)." };
+    }
+
+    try {
+       const { editSite } = await import('../services/stitch-client.js');
+       const editResult = await editSite(targetLead.stitchProjectId, targetLead.stitchSessionId, prompt);
+       return {
+         success: true,
+         html: editResult.html
+       };
+    } catch (e: any) {
+       request.log.error({ err: e }, "Erro no edit-code");
+       reply.code(500);
+       return { message: `Falha ao editar e regenerar com Stitch AI. Detalhe: ${e.message}` };
+    }
+  });
+
+  // ROTA PARA PUBLICAR HTML MANUAL (GERADO NO STITCH MANUAMENTE OU VIA IA FATIADA)
   app.post("/api/leads/:id/publish-manual", async (request, reply) => {
     const userId = (request as any).user?.id;
     if (!userId) return reply.code(401).send({ message: "Unauthorized" });
     const { id } = paramsSchema.parse(request.params);
     const bodyArgs = request.body as any;
     const html = bodyArgs.html;
+    const stitchProjectId = bodyArgs.stitchProjectId;
+    const stitchSessionId = bodyArgs.stitchSessionId;
 
     if (!html) {
       reply.code(400);
@@ -313,9 +388,8 @@ DADOS OBRIGATÓRIOS DO NEGÓCIO (USE ESTES DADOS PARA CRIAR A COPY DO SITE, SUBS
       await repository.saveSiteData(userId, id, {
         siteUrl: outputDeploy.url,
         githubUrl: gData.githubUrl,
-        // Since it's manual, we don't have stitch project IDs. Keep existing or pass undefined
-        stitchProjectId: targetLead.stitchProjectId || "",
-        stitchSessionId: targetLead.stitchSessionId || "" // Mantemos vazios se não houver
+        stitchProjectId: stitchProjectId || targetLead.stitchProjectId || "",
+        stitchSessionId: stitchSessionId || targetLead.stitchSessionId || ""
       });
 
       return {
@@ -326,7 +400,7 @@ DADOS OBRIGATÓRIOS DO NEGÓCIO (USE ESTES DADOS PARA CRIAR A COPY DO SITE, SUBS
     } catch (e) {
       request.log.error({ err: e }, "Erro no fluxo manual Github/Vercel");
       reply.code(500);
-      return { message: "Falha ao publicar site manual." };
+      return { message: "Falha ao publicar site." };
     }
   });
 

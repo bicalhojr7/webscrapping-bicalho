@@ -33,7 +33,7 @@ async function callStitchJsonRpc(method: string, internalMethod: string, params:
           "Content-Type": "application/json"
         },
         body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(120000) // 2 minutos de limite
+        signal: AbortSignal.timeout(300000) // 5 minutos de limite
       });
 
       console.log(`[Stitch API] Resposta recebida: HTTP ${response.status}`);
