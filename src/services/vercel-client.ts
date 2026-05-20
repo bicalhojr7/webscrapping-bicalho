@@ -39,8 +39,6 @@ export async function deployToVercel(projectName: string, githubOwner: string, g
   const cleanName = projectName.toLowerCase().replace(/[^a-z0-9-]/g, "-");
   
   let publicUrl = `https://${cleanName}.vercel.app`; // fallback inicial limpo
-
-
   
   // 3. Aguardar o deploy finalizar (Polling) para evitar 404 e para capturar o alias (URL) real
   let isReady = false;
@@ -61,10 +59,55 @@ export async function deployToVercel(projectName: string, githubOwner: string, g
           
           if (state === "READY") {
             // O deploy foi concluído com sucesso!
-            // Retornamos sempre a URL definitiva de produção no domínio geral limpo
-            // (https://[nome-do-projeto].vercel.app), que é pública e livre de restrições de time.
-            publicUrl = `https://${cleanName}.vercel.app`;
-          } else if (state !== "READY") {
+            // Buscaremos a URL de produção pública oficial do Vercel de forma dinâmica.
+            let foundUrl = "";
+
+            // 1. Tentar ler os domínios configurados no projeto pela API da Vercel
+            const pId = result.projectId || result.project?.id || statusData.projectId || statusData.project?.id || cleanName;
+            try {
+              const domainsRes = await fetch(`https://api.vercel.com/v9/projects/${pId}/domains`, {
+                headers: { "Authorization": `Bearer ${VERCEL_TOKEN}` }
+              });
+              if (domainsRes.ok) {
+                const domainsData = await domainsRes.json();
+                if (domainsData.domains && Array.isArray(domainsData.domains)) {
+                  const projectDomains = domainsData.domains.map((d: any) => d.name);
+                  const valid = projectDomains.filter((d: string) => 
+                    !d.includes("-git-") && 
+                    !d.includes("-projects.vercel.app")
+                  );
+                  if (valid.length > 0) {
+                    foundUrl = `https://${valid[0]}`;
+                  }
+                }
+              }
+            } catch (err) {
+              console.error("[Vercel Client] Erro ao buscar domínios do projeto na Vercel:", err);
+            }
+
+            // 2. Tentar ler os aliases atribuídos ao próprio deploy
+            if (!foundUrl && statusData.alias && Array.isArray(statusData.alias)) {
+              const valid = statusData.alias.filter((d: string) => 
+                !d.includes("-git-") && 
+                !d.includes("-projects.vercel.app")
+              );
+              if (valid.length > 0) {
+                foundUrl = `https://${valid[0]}`;
+              }
+            }
+
+            // 3. Fallback: usar a URL direta do próprio deploy
+            if (!foundUrl && result.url) {
+              foundUrl = `https://${result.url}`;
+            }
+
+            // 4. Fallback teórico se tudo mais falhar
+            if (!foundUrl) {
+              foundUrl = `https://${cleanName}.vercel.app`;
+            }
+
+            publicUrl = foundUrl;
+          } else {
             console.warn(`Deploy finalizado com status de erro ou cancelado: ${state}`);
           }
         }
