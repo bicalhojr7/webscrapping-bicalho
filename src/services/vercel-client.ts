@@ -60,39 +60,10 @@ export async function deployToVercel(projectName: string, githubOwner: string, g
           isReady = true;
           
           if (state === "READY") {
-            try {
-              // Buscar os detalhes do projeto para pegar o alias limpo principal de produção (como mk-fitness-studio-treinamento-perso-chi.vercel.app)
-              const projectRes = await fetch(`https://api.vercel.com/v9/projects/${cleanName}`, {
-                headers: { "Authorization": `Bearer ${VERCEL_TOKEN}` }
-              });
-              if (projectRes.ok) {
-                const projectData = await projectRes.json();
-                let allAliases: string[] = [];
-                if (projectData.targets?.production?.alias) {
-                  allAliases.push(...projectData.targets.production.alias);
-                }
-                if (projectData.alias) {
-                  allAliases.push(...projectData.alias.map((a: any) => a.domain));
-                }
-                
-                // Filtra as URLs de branch/deploy e fica só com as definitivas
-                const validAliases = allAliases.filter(domain => 
-                  !domain.includes("-git-") && 
-                  !domain.includes("-projects.vercel.app") &&
-                  domain !== result.url
-                );
-
-                if (validAliases.length > 0) {
-                  validAliases.sort((a, b) => a.length - b.length);
-                  publicUrl = `https://${validAliases[0]}`;
-                } else if (statusData.alias && statusData.alias.length > 0) {
-                  // Fallback para alias do deploy se o projeto não tiver alias válidos ainda
-                  publicUrl = `https://${statusData.alias[0]}`;
-                }
-              }
-            } catch (err) {
-               console.error("Erro ao buscar domínios finais do projeto:", err);
-            }
+            // O deploy foi concluído com sucesso!
+            // Retornamos sempre a URL definitiva de produção no domínio geral limpo
+            // (https://[nome-do-projeto].vercel.app), que é pública e livre de restrições de time.
+            publicUrl = `https://${cleanName}.vercel.app`;
           } else if (state !== "READY") {
             console.warn(`Deploy finalizado com status de erro ou cancelado: ${state}`);
           }
