@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { FastifyInstance } from "fastify";
 
-import { leadStatuses } from "../domain/lead.js";
+import { leadStatuses, createLeadRecord } from "../domain/lead.js";
 import { GooglePlacesClient } from "../services/google-places-client.js";
 import { buildLeadXlsx } from "../services/lead-export.js";
 import { LeadQueueRepository } from "../services/lead-queue-repository.js";
@@ -102,6 +102,67 @@ export async function registerLeadRoutes(app: FastifyInstance): Promise<void> {
       saved: true,
       total: newLeads.length,
       leads: savedLeads
+    };
+  });
+
+  const manualLeadSchema = z.object({
+    companyName: z.string().trim().min(2).max(120),
+    phoneNumber: z.string().trim().min(4).max(30)
+  });
+
+  app.post("/api/leads/manual", async (request, reply) => {
+    const userId = (request as any).user?.id;
+    if (!userId) return reply.code(401).send({ message: "Unauthorized" });
+    const input = manualLeadSchema.parse(request.body);
+
+    const manualId = `manual-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    
+    const candidate = {
+      placeId: manualId,
+      companyName: input.companyName,
+      phoneNumber: input.phoneNumber
+    };
+
+    const record = createLeadRecord(candidate, new Date(), "manual");
+
+    const { data, error } = await supabase
+      .from("leads")
+      .insert({
+        id: record.id,
+        place_id: record.placeId,
+        company_name: record.companyName,
+        phone_number: record.phoneNumber,
+        status: "pending",
+        source: "manual",
+        user_id: userId,
+        created_at: record.createdAt,
+        updated_at: record.updatedAt,
+        last_seen_at: record.lastSeenAt
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Erro ao salvar lead manual no Supabase:", error);
+      reply.code(500);
+      return { message: `Falha ao cadastrar lead manual: ${error.message}` };
+    }
+
+    const mapper = (row: any) => ({
+      id: row.id,
+      placeId: row.place_id,
+      companyName: row.company_name,
+      phoneNumber: row.phone_number,
+      status: row.status,
+      source: row.source,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    });
+
+    reply.code(201);
+    return {
+      success: true,
+      lead: mapper(data)
     };
   });
 

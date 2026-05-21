@@ -47,6 +47,7 @@
 
         <nav class="rail__nav">
           <button id="nav-leads" class="nav__link active">🏢 Fila de Leads</button>
+          <button id="nav-manual" class="nav__link">➕ Lead Manual</button>
           <button id="nav-sales" class="nav__link">💬 Estratégia & Copy</button>
           <button id="btn-logout" class="nav__link" style="color: var(--red); border-top: 1px solid var(--border); margin-top: auto;">🚪 Sair</button>
         </nav>
@@ -116,6 +117,27 @@
 
           <div id="lead-list" class="ticket-list" aria-live="polite"></div>
         </section>
+        </div>
+
+        <div id="view-manual" style="display: none;">
+          <h2 class="tickets__title" style="margin-bottom: 8px;">Cadastrar Lead Manual</h2>
+          <p style="color: var(--fg-secondary); font-size: 14px; margin-bottom: 24px;">Adicione dados de leads externos (como planilhas) diretamente na sua fila para gerar sites e gerenciar no seu painel.</p>
+
+          <form id="manual-lead-form" style="max-width: 480px; background: rgba(24, 24, 27, 0.6); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); padding: 32px; border-radius: var(--radius-xl); box-shadow: var(--shadow-lg), 0 0 0 1px var(--border); border-top: 1px solid rgba(255,255,255,0.1);">
+            <label class="field" style="margin-bottom: 20px;">
+              <span style="font-size: 12px; color: var(--fg-secondary); display: block; margin-bottom: 8px;">NOME DA EMPRESA (Usado para gerar a URL)</span>
+              <input type="text" id="manual-lead-company" required placeholder="Ex: Mk Fitness" style="width: 100%; padding: 12px 16px; border-radius: var(--radius-md); border: 1px solid var(--border-strong); background: rgba(0,0,0,0.2); color: var(--fg); font-size: 14px; transition: all 0.2s ease;">
+            </label>
+            
+            <label class="field" style="margin-bottom: 24px;">
+              <span style="font-size: 12px; color: var(--fg-secondary); display: block; margin-bottom: 8px;">NÚMERO DO WHATSAPP (Com DDI e DDD, ex: 5511999999999)</span>
+              <input type="text" id="manual-lead-phone" required placeholder="Ex: 5511999999999" style="width: 100%; padding: 12px 16px; border-radius: var(--radius-md); border: 1px solid var(--border-strong); background: rgba(0,0,0,0.2); color: var(--fg); font-size: 14px; transition: all 0.2s ease;">
+            </label>
+
+            <p id="manual-lead-feedback" class="feedback" style="margin-bottom: 20px; font-weight: 500; font-size: 13px; min-height: 20px; text-align: center; color: var(--red);"></p>
+            
+            <button type="submit" class="button button--primary" style="width: 100%; height: 44px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; border-radius: var(--radius-md); font-weight: 600;">⚡ Cadastrar na Fila</button>
+          </form>
         </div>
 
         <div id="view-sales" style="display: none;">

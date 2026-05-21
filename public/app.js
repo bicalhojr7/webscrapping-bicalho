@@ -346,25 +346,97 @@ window.copyText = function(elementId) {
 };
 
 const navLeads = document.getElementById("nav-leads");
+const navManual = document.getElementById("nav-manual");
 const navSales = document.getElementById("nav-sales");
 const viewLeads = document.getElementById("view-leads");
+const viewManual = document.getElementById("view-manual");
 const viewSales = document.getElementById("view-sales");
 
-if (navLeads && navSales) {
+if (navLeads && navManual && navSales) {
   navLeads.addEventListener("click", () => {
     navLeads.classList.add("active");
+    navManual.classList.remove("active");
     navSales.classList.remove("active");
     viewLeads.style.display = "block";
+    viewManual.style.display = "none";
+    viewSales.style.display = "none";
+  });
+
+  navManual.addEventListener("click", () => {
+    navManual.classList.add("active");
+    navLeads.classList.remove("active");
+    navSales.classList.remove("active");
+    viewManual.style.display = "block";
+    viewLeads.style.display = "none";
     viewSales.style.display = "none";
   });
   
   navSales.addEventListener("click", () => {
     navSales.classList.add("active");
     navLeads.classList.remove("active");
+    navManual.classList.remove("active");
     viewSales.style.display = "block";
     viewLeads.style.display = "none";
+    viewManual.style.display = "none";
   });
 }
+
+// Lógica de envio do formulário de Lead Manual
+const manualLeadForm = document.getElementById("manual-lead-form");
+if (manualLeadForm) {
+  manualLeadForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const companyInput = document.getElementById("manual-lead-company");
+    const phoneInput = document.getElementById("manual-lead-phone");
+    const feedback = document.getElementById("manual-lead-feedback");
+    const submitBtn = manualLeadForm.querySelector("button");
+
+    feedback.textContent = "";
+    feedback.style.color = "var(--accent)";
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Cadastrando...";
+
+    try {
+      const res = await fetch("/api/leads/manual", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          companyName: companyInput.value,
+          phoneNumber: phoneInput.value
+        })
+      });
+
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.message || "Erro desconhecido ao cadastrar.");
+      }
+
+      feedback.textContent = "Lead cadastrado com sucesso!";
+      feedback.style.color = "var(--green)";
+      companyInput.value = "";
+      phoneInput.value = "";
+
+      // Atualiza a fila de leads
+      loadLeads().catch(console.error);
+
+      // Redireciona para a fila após 1.5s
+      setTimeout(() => {
+        navLeads.click();
+        feedback.textContent = "";
+      }, 1500);
+
+    } catch (err) {
+      feedback.textContent = "Erro: " + err.message;
+      feedback.style.color = "var(--red)";
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "⚡ Cadastrar na Fila";
+    }
+  });
+}
+
 
 async function loadLeads() {
   const response = await fetch("/api/leads");

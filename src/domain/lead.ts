@@ -15,7 +15,7 @@ export type LeadCandidate = {
 export type LeadRecord = LeadCandidate & {
   id: string;
   status: LeadStatus;
-  source: "google_places";
+  source: "google_places" | "manual";
   createdAt: string;
   updatedAt: string;
   lastSeenAt: string;
@@ -27,7 +27,7 @@ export type LeadRecord = LeadCandidate & {
   stitchSessionId?: string | undefined;
 };
 
-export function createLeadRecord(candidate: LeadCandidate, now = new Date()): LeadRecord {
+export function createLeadRecord(candidate: LeadCandidate, now = new Date(), source: "google_places" | "manual" = "google_places"): LeadRecord {
   const timestamp = now.toISOString();
 
   const record: LeadRecord = {
@@ -36,7 +36,7 @@ export function createLeadRecord(candidate: LeadCandidate, now = new Date()): Le
     companyName: candidate.companyName,
     phoneNumber: candidate.phoneNumber,
     status: "pending",
-    source: "google_places",
+    source: source,
     createdAt: timestamp,
     updatedAt: timestamp,
     lastSeenAt: timestamp
